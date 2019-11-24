@@ -1,7 +1,7 @@
 import random
 from collections import namedtuple
 from enum import Enum
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Iterator
 
 Pos = namedtuple("Pos", ["x", "y"])
 
@@ -28,6 +28,11 @@ class Card:
 
     def __repr__(self):
         return f"{self.value} of {self.suit.value}"
+
+    def __eq__(self, other):
+        if not isinstance(other, Card):
+            return False
+        return self.suit == other.suit and self.value == other.value
 
 
 def new_deck(num_suits: int, chosen_suits: Optional[List[Suit]] = None) -> List[Card]:
@@ -68,14 +73,44 @@ class Arboretum:
             Pos(pos.x - 1, pos.y),
         ]
 
+    def increasing_neighbours(self, pos: Pos) -> Iterator[Pos]:
+        if pos not in self.grid:
+            return iter([])
+        val = self.grid[pos].value
+        neighbours = self.neighbours(pos)
+        return filter(lambda p: p in self.grid and self.grid[p].value > val, neighbours)
+
     def paths_for(self, suit: Suit) -> List[List[Card]]:
+        """
+        Get all paths beginning and ending with a card of the given suit.
+        :param suit: the suit to start and end paths with.
+        :return: A list of paths, which are lists of cards.
+        """
         cards_in_suit = [(pos, card) for pos, card in self.grid.items() if card.suit == suit]
         if len(cards_in_suit) < 2:
             return [[]]
         cards_in_suit.sort(key=lambda pos_card: pos_card[1].value, reverse=True)
+        all_paths = []
         for start_pos, start_card in cards_in_suit[1:]:
-            print(start_card, start_pos)
-        return [[]]
+            paths = list(self.bfs(start_pos, start_card.suit))
+            all_paths.extend(paths)
+            for new_path in paths:
+                for existing_path in all_paths:
+                    if new_path[-1] == existing_path[0]:
+                        joined = new_path + existing_path[1:]
+                        all_paths.append(joined)
+        return all_paths
+
+    def bfs(self, pos: Pos, target_suit: Suit) -> Iterator[List[Card]]:
+        queue = [(pos, [self.grid[pos]])]
+        while queue:
+            (cur_pos, path) = queue.pop(0)
+            for next_pos in self.increasing_neighbours(cur_pos):
+                next_path = path + [self.grid[next_pos]]
+                if self.grid[next_pos].suit == target_suit:
+                    yield next_path
+                else:
+                    queue.append((next_pos, next_path))
 
 
 class Player:

@@ -49,7 +49,7 @@ class DataTest(unittest.TestCase):
         return all(len(p) >= 2 for p in paths)
 
     def test_line(self):
-        expected = [Card(Suit.CASSIA, 1)] + [Card(Suit.OAK, i) for i in range(2, 7)] + [Card(Suit.CASSIA, 8)]
+        expected = [Card(Suit.CASSIA, 1)] + [Card(Suit.OAK, i) for i in range(2, 8)] + [Card(Suit.CASSIA, 8)]
         self.assertEqual(
             self.line().paths_for(Suit.CASSIA),
             [
@@ -71,8 +71,19 @@ class DataTest(unittest.TestCase):
                 Card(Suit.CASSIA, 7),
                 Card(Suit.DOGWOOD, 8), ],
             dogwood_paths)
+        self.assertIn([
+            Card(Suit.DOGWOOD, 1),
+            Card(Suit.OAK, 2),
+            Card(Suit.CASSIA, 3),
+            Card(Suit.CASSIA, 4),
+            Card(Suit.CASSIA, 5),
+            Card(Suit.CASSIA, 6),
+            Card(Suit.CASSIA, 7),
+            Card(Suit.DOGWOOD, 8), ],
+            dogwood_paths)
         self.assertTrue(self.all_ascending(dogwood_paths))
         self.assertTrue(self.all_two_plus(dogwood_paths))
+
         cassia_paths = score_suit(Suit.CASSIA)
         self.assertIn(
             [
@@ -80,8 +91,7 @@ class DataTest(unittest.TestCase):
                 Card(Suit.OAK, 2),
                 Card(Suit.CASSIA, 3),
                 Card(Suit.CASSIA, 6),
-                Card(Suit.CASSIA, 7),
-                Card(Suit.CASSIA, 8), ],
+                Card(Suit.CASSIA, 7), ],
             cassia_paths)
         self.assertTrue(self.all_ascending(cassia_paths))
         self.assertTrue(self.all_two_plus(cassia_paths))
