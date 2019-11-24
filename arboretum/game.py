@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List, Dict
 
-from .data import Player, Suit
+from .data import Player, Suit, Card
 
 
 def score_game(players: List[Player]) -> Dict[Player, int]:
@@ -21,7 +21,8 @@ def score_game(players: List[Player]) -> Dict[Player, int]:
     for suit in suits:
         scorers = who_scores(suit, player_suit_values)
         for scorer in scorers:
-            scores[scorer] += score_suit(scorer.arboretum, suit)
+            paths = scorer.arboretum.paths_for(suit)
+            scores[scorer] += max([score_path(p) for p in paths])
 
     return scores
 
@@ -40,5 +41,17 @@ def who_scores(suit: Suit, remaining_card_scores: Dict[Player, Dict[Suit, int]])
     return scoring
 
 
-def score_suit(arboretum, suit):
-    return 0
+def score_path(path: List[Card]) -> int:
+    """
+    Scores valid paths.
+    :param path:
+    :return:
+    """
+    score = len(path)
+    if path[0].value == 1:
+        score +=1
+    if path[-1].value == 8:
+        score += 2
+    if len(path) >= 4 and all([c.suit == path[0].suit for c in path]):
+        score += len(path)
+    return score

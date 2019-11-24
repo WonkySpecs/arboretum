@@ -9,7 +9,7 @@ Pos = namedtuple("Pos", ["x", "y"])
 class Suit(Enum):
     CASSIA = "Cassia"
     MAGNOLIA = "Magnolia"
-    Dogwood = "Dogwood"
+    DOGWOOD = "Dogwood"
     MAPLE = "Maple"
     JACARANDA = "Jacaranda"
     ROYAL_POINCIANA = "Royal Poinciana"
@@ -26,8 +26,11 @@ class Card:
         self.suit = suit
         self.value = value
 
+    def __repr__(self):
+        return f"{self.value} of {self.suit.value}"
 
-def new_deck(num_suits: int, chosen_suits=None) -> List[Card]:
+
+def new_deck(num_suits: int, chosen_suits: Optional[List[Suit]] = None) -> List[Card]:
     if chosen_suits and len(chosen_suits) != num_suits:
         raise ValueError(
             f"Supposed to generate deck with {num_suits} suits, but was given {len(chosen_suits)} chosen suits")
@@ -48,7 +51,7 @@ class Arboretum:
             return False, "Cannot place on top of existing card"
 
         for existing_pos in self.grid.keys():
-            if self.is_neighbour(pos, existing_pos):
+            if pos in self.neighbours(existing_pos):
                 return True, None
 
         return False, "Card must be placed next to an existing card"
@@ -57,14 +60,22 @@ class Arboretum:
         self.grid[pos] = card
 
     @staticmethod
-    def is_neighbour(pos1: Pos, pos2: Pos) -> bool:
-        if pos1.x == pos2.x:
-            if pos1.y == pos2.y + 1 or pos1.y == pos2.y - 1:
-                return True
-        elif pos1.y == pos2.y:
-            if pos1.x == pos2.x + 1 or pos1.x == pos2.x - 1:
-                return True
-        return False
+    def neighbours(pos: Pos) -> List[Pos]:
+        return [
+            Pos(pos.x, pos.y + 1),
+            Pos(pos.x, pos.y - 1),
+            Pos(pos.x + 1, pos.y),
+            Pos(pos.x - 1, pos.y),
+        ]
+
+    def paths_for(self, suit: Suit) -> List[List[Card]]:
+        cards_in_suit = [(pos, card) for pos, card in self.grid.items() if card.suit == suit]
+        if len(cards_in_suit) < 2:
+            return [[]]
+        cards_in_suit.sort(key=lambda pos_card: pos_card[1].value, reverse=True)
+        for start_pos, start_card in cards_in_suit[1:]:
+            print(start_card, start_pos)
+        return [[]]
 
 
 class Player:
@@ -102,7 +113,7 @@ class Game:
     STARTING_CARDS = 7
     players: List[Player]
 
-    def __init__(self, num_players, chosen_suits: None):
+    def __init__(self, num_players: int, chosen_suits: Optional[List[Suit]] = None):
         self.players = [Player(i) for i in range(num_players)]
         self.deck = new_deck(self.num_suits(num_players), chosen_suits)
 
