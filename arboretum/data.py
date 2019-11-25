@@ -1,6 +1,6 @@
 import random
 from collections import namedtuple
-from enum import Enum
+from enum import Enum, auto
 from typing import List, Dict, Tuple, Optional, Iterator
 
 Pos = namedtuple("Pos", ["x", "y"])
@@ -144,6 +144,11 @@ class Player:
         self.hand.remove(to_discard)
 
 
+class DrawTarget(Enum):
+    DECK = auto()
+    DISCARD_PILE = auto()
+
+
 class Game:
     STARTING_CARDS = 7
     players: List[Player]
@@ -151,6 +156,8 @@ class Game:
     def __init__(self, num_players: int, chosen_suits: Optional[List[Suit]] = None):
         self.players = [Player(i) for i in range(num_players)]
         self.deck = new_deck(self.num_suits(num_players), chosen_suits)
+        self.player_turn = 0
+        self.game_over = False
 
         for player in self.players:
             for _ in range(Game.STARTING_CARDS):
@@ -161,3 +168,17 @@ class Game:
         if num_players in [2, 3, 4]:
             return num_players * 2 + 2
         raise ValueError("Number of players must be 2, 3, or 4")
+
+    def is_valid_draw_target(self, target: DrawTarget, player_num: Optional[int]) -> bool:
+        if target == DrawTarget.DECK:
+            return True
+        return len(self.players[player_num].discard) > 0
+
+    def draw(self, target: DrawTarget, player_num: Optional[int]) -> Card:
+        if target == DrawTarget.DECK:
+            drawn_card = self.deck.pop()
+            if not self.deck:
+                self.game_over = False
+            return drawn_card
+
+        return self.players[player_num].discard.pop()
