@@ -85,7 +85,7 @@ class Arboretum:
     def __init__(self):
         self.grid = {}
 
-    def is_valid_play_pos(self, pos: Pos) -> Tuple[bool, Optional[str]]:
+    def is_valid_place_pos(self, pos: Pos) -> Tuple[bool, Optional[str]]:
         if not self.grid:
             if pos == Pos(0, 0):
                 return True, None
@@ -186,14 +186,14 @@ class Player:
         self.discard = []
         self.arboretum = Arboretum()
 
-    def is_valid_play(self, to_play: Card, pos: Pos, to_discard: Card) -> Tuple[bool, Optional[str]]:
-        if not any([to_play == c for c in self.hand]):
-            return False, f"Cannot play card '{to_play}' because you don't have it"
+    def is_valid_play(self, to_place: Card, place_pos: Pos, to_discard: Card) -> Tuple[bool, Optional[str]]:
+        if not any([to_place == c for c in self.hand]):
+            return False, f"Cannot play card '{to_place}' because you don't have it"
 
         if not any([to_discard == c for c in self.hand]):
             return False, f"Cannot discard card '{to_discard}' because you don't have it"
 
-        return self.arboretum.is_valid_play_pos(pos)
+        return self.arboretum.is_valid_place_pos(place_pos)
 
     def play(self, to_play: Card, pos: Pos, to_discard: Card):
         self.arboretum.add_card(to_play, pos)
