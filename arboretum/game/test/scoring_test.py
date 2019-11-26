@@ -1,7 +1,7 @@
 import unittest
 
-from arboretum.data import Suit, Card, Player
-from arboretum.scoring import score_path, calc_player_suit_values
+from arboretum.game.data import Suit, Card, Player
+from arboretum.game.scoring import score_path, calc_player_suit_values
 
 
 class GameTest(unittest.TestCase):

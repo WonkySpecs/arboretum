@@ -1,6 +1,6 @@
 import unittest
 
-from arboretum.data import Arboretum, Card, Suit, Pos
+from arboretum.game.data import Arboretum, Card, Suit, Pos
 
 
 class DataTest(unittest.TestCase):

@@ -1,7 +1,7 @@
 from typing import Tuple, Optional
 
-from data import Game, DrawTarget, Card, Suit, Pos
-from scoring import score_game
+from game.data import Game, DrawTarget, Card, Suit, Pos
+from game.scoring import score_game
 
 
 def get_draw_target_from_input() -> Tuple[DrawTarget, Optional[int]]:
