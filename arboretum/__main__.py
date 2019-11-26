@@ -1,7 +1,10 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 
-from game.data import Game, DrawTarget, Card, Suit, Pos
-from game.scoring import score_game
+from arboretum.clients.base_client import BaseClient
+from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage
+from arboretum.clients.random_robot import RandomRobot
+from arboretum.game.data import Game, DrawTarget, Card, Suit, Pos, Player
+from arboretum.game.scoring import score_game
 
 
 def get_draw_target_from_input() -> Tuple[DrawTarget, Optional[int]]:
@@ -26,32 +29,39 @@ def get_play_from_input():
 
 num_players = int(input("Num players:"))
 game = Game(num_players)
+clients: Dict[Player, BaseClient] = {game.players[i]: RandomRobot(i, len(game.deck)) for i in range(num_players)}
+
+for player in game.players:
+    for c in player.hand:
+        clients[player].receive(DrawMessage(card=c))
 
 while not game.finished:
-    print(f"\nPlayer {game.player_turn + 1}'s turn")
-    print(f"Your arboretum:\n{game.current_player.arboretum.formatted()}")
+    cur_client = clients[game.current_player]
     for i in range(2):
-        print(f"Your hand: {game.current_player.hand}")
-        print(f"Draw {i + 1}/2, choose 'deck' or from {top_of_discards(game)}")
         valid = False
         while not valid:
-            draw_type, target = get_draw_target_from_input()
+            draw_type, target = next(cur_client.gen_draw)
             valid, message = game.is_valid_draw_target(draw_type, target)
             if not valid:
                 print(message)
             else:
-                game.current_player.hand.append(game.draw(draw_type, target))
-        print()
+                card = game.draw(draw_type, target)
+                game.current_player.hand.append(card)
+                cur_client.receive(DrawMessage(card=card))
+                for client in clients.values():
+                    client.receive(CardTakenMessage(player_num=target if target is not None else -1))
 
-    print(f"Your hand: {game.current_player.hand}")
     valid = False
     while not valid:
-        play_card, pos, discard_card = get_play_from_input()
+        play_card, pos, discard_card = next(cur_client.gen_play)
         valid, message = game.current_player.is_valid_play(play_card, pos, discard_card)
         if not valid:
             print(message)
         else:
             game.current_player.play(play_card, pos, discard_card)
-            game.player_turn = (game.player_turn + 1) % num_players
+            for client in clients.values():
+                client.receive(PlayMessage(play_card, pos, game.current_player.num))
+                client.receive(DiscardMessage(discard_card, game.current_player.num))
+    game.player_turn = (game.player_turn + 1) % num_players
 
 print(f"Scores:\n{score_game(game.players)}")

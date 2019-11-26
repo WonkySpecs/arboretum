@@ -12,7 +12,8 @@ def score_game(players: List[Player]) -> Dict[Player, int]:
         scorers = who_scores(suit, player_suit_values)
         for scorer in scorers:
             paths = scorer.arboretum.paths_for(suit)
-            scores[scorer] += max([score_path(p) for p in paths])
+            if paths:
+                scores[scorer] += max([score_path(p) for p in paths])
 
     return scores
 

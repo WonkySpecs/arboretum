@@ -58,7 +58,7 @@ class Card:
         self.value = value
 
     def __repr__(self):
-        return f"{self.value} of {self.suit.value}"
+        return f"{self.value} {self.suit.value}"
 
     def __eq__(self, other):
         if not isinstance(other, Card):
@@ -133,12 +133,13 @@ class Arboretum:
         all_paths = []
         for start_pos, start_card in cards_in_suit[1:]:
             paths = list(self.bfs(start_pos, start_card.suit))
-            all_paths.extend(paths)
-            for new_path in paths:
-                for existing_path in all_paths:
-                    if new_path[-1] == existing_path[0]:
-                        joined = new_path + existing_path[1:]
-                        all_paths.append(joined)
+            if paths:
+                all_paths.extend(paths)
+                for new_path in paths:
+                    for existing_path in all_paths:
+                        if new_path[-1] == existing_path[0]:
+                            joined = new_path + existing_path[1:]
+                            all_paths.append(joined)
         return all_paths
 
     def bfs(self, pos: Pos, target_suit: Suit) -> Iterator[List[Card]]:
@@ -233,19 +234,21 @@ class Game:
             if self.deck:
                 return True, None
             else:
+                exit(-1)
                 return False, "No cards left in deck to draw"
 
         valid = len(self.players[player_num].discard) > 0
         if valid:
             return True, None
         else:
+            exit(-1)
             return False, f"Cannot take from player {player_num}, they have no discard pile"
 
     def draw(self, target: DrawTarget, player_num: Optional[int] = None) -> Card:
         if target == DrawTarget.DECK:
             drawn_card = self.deck.pop()
             if not self.deck:
-                self.finished = False
+                self.finished = True
             return drawn_card
 
         return self.players[player_num].discard.pop()
