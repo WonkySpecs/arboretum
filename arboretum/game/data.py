@@ -230,7 +230,11 @@ class Game:
 
     def is_valid_draw_target(self, target: DrawTarget, player_num: Optional[int] = None) -> Tuple[bool, Optional[str]]:
         if target == DrawTarget.DECK:
-            return True, None
+            if self.deck:
+                return True, None
+            else:
+                return False, "No cards left in deck to draw"
+
         valid = len(self.players[player_num].discard) > 0
         if valid:
             return True, None
