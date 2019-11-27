@@ -128,7 +128,7 @@ class Arboretum:
         """
         cards_in_suit = [(pos, card) for pos, card in self.grid.items() if card.suit == suit]
         if len(cards_in_suit) < 2:
-            return [[]]
+            return []
         cards_in_suit.sort(key=lambda pos_card: pos_card[1].value, reverse=True)
         all_paths = []
         for start_pos, start_card in cards_in_suit[1:]:
