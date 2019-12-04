@@ -35,6 +35,22 @@ function texturesLoaded(app) {
         card.sprite.y = y;
         appState.playerArboretum.addChild(card.sprite);
     }
+    let sync = stateSync(gameState, appState, null);
+    clock = 0;
+    c = 0;
+    app.ticker.add(function(delta) {
+        clock += delta;
+        if (clock > 50) {
+            if ( c < 20) {
+                clock = 0;
+                c += 1;
+                sync.cardDrawn(builder.build(3, "oak"));
+            } else {
+                clock = 0;
+                sync.cardPlayed(gameState.hand[0]);
+            }
+        }
+    });
 
     document.body.appendChild(app.view);
 }
@@ -86,6 +102,8 @@ function newGameState(playerNum, numPlayers) {
 function newAppState(app) {
     let handContainer = new PIXI.Container();
     let handRect = new PIXI.Rectangle(0, config.canvas.height - 100, config.canvas.width / 2, 100);
+    handContainer.x = handRect.x;
+    handContainer.y = handRect.y;
 
     let playerDiscardContainer = new PIXI.Container();
     let playerDiscardRect = new PIXI.Rectangle(config.canvas.width / 2 - 60, config.canvas.height - handRect.height - 80, 60, 80);
@@ -111,4 +129,29 @@ function newAppState(app) {
         playerArboretum: playerArboretum,
         playerArboretumSize: playerArboretumRect,
     }
+}
+
+function stateSync(gameState, appState, ws) {
+    let resizeCardSpritesInHand = function(appState) {
+        let numCards = appState.hand.children.length;
+        let margin = 10;
+        let widthPerCard = Math.floor((appState.handSize.width - margin * 2) / numCards);
+        for (let i = 0; i < numCards; i++) {
+            let child = appState.hand.children[i];
+            child.x = i * widthPerCard + margin;
+        }
+    }
+
+    return {
+        cardDrawn: function(card) {
+            gameState.hand.push(card);
+            appState.hand.addChild(card.sprite);
+            resizeCardSpritesInHand(appState);
+        },
+        cardPlayed: function(card) {
+            gameState.hand.splice(gameState.hand.indexOf(card), 1);
+            appState.hand.removeChild(card.sprite);
+            resizeCardSpritesInHand(appState);
+        }
+    };
 }
