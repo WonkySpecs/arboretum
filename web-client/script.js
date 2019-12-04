@@ -25,13 +25,17 @@ window.onload = function() {
 function texturesLoaded(app) {
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let builder = cardBuilder(textures);
-    for (let i = 0; i < 1000; i++ ) {
+    let gameState = newGameState(1, 4);
+    let appState = newAppState(app);
+    let s = appState.playerArboretumSize;
+    for ( let [x, y] of [[0, 0], [0, s.height - 64], [s.width - 40, 0], [s.width - 40, s.height - 64]]) {
+        console.log(x, y);
         let card = builder.build(Math.floor(Math.random() * 8) + 1, config.suits[Math.floor(Math.random() * config.suits.length)]);
-        card.sprite.x = Math.random() * (config.canvas.width - card.sprite.width);
-        card.sprite.y = Math.random() * (config.canvas.height - card.sprite.height);
-        app.stage.addChild(card.sprite);
+        card.sprite.x = x;
+        card.sprite.y = y;
+        appState.playerArboretum.addChild(card.sprite);
     }
-    console.log(app.stage);
+
     document.body.appendChild(app.view);
 }
 
@@ -67,4 +71,44 @@ function cardBuilder(textures, inputManager) {
 
 function cardClicked(card) {
     console.log("Clicked " + card.val + " of " + card.suit);
+}
+
+function newGameState(playerNum, numPlayers) {
+    return {
+        playerNum: playerNum,
+        currentPlayer: 1,
+        hand: [],
+        discards: [...Array(numPlayers)].map(_ => []),
+        arboretums: [...Array(numPlayers)].map(_ => []),
+    }
+}
+
+function newAppState(app) {
+    let handContainer = new PIXI.Container();
+    let handRect = new PIXI.Rectangle(0, config.canvas.height - 100, config.canvas.width / 2, 100);
+
+    let playerDiscardContainer = new PIXI.Container();
+    let playerDiscardRect = new PIXI.Rectangle(config.canvas.width / 2 - 60, config.canvas.height - handRect.height - 80, 60, 80);
+
+    let deckContainer = new PIXI.Container();
+    let deckRect = new PIXI.Rectangle(config.canvas.width / 2 - 60 - 60, config.canvas.height - handRect.height - 80, 60, 80);
+
+    let playerArboretum = new PIXI.Container();
+    let playerArboretumRect = new PIXI.Rectangle(0, 0, config.canvas.width / 2, config.canvas.height - handRect.height - deckRect.height);
+
+    for (container of [handContainer, playerDiscardContainer, deckContainer, playerArboretum] ) {
+        app.stage.addChild(container);
+    }
+
+    return {
+        app: app,
+        hand: handContainer,
+        handSize: handRect,
+        playerDiscard: playerDiscardContainer,
+        playerDiscardSize: playerDiscardRect,
+        deck: deckContainer,
+        deckSize: deckRect,
+        playerArboretum: playerArboretum,
+        playerArboretumSize: playerArboretumRect,
+    }
 }
