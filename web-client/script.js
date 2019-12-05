@@ -23,6 +23,12 @@ window.onload = function() {
 }
 
 function texturesLoaded(app) {
+    let ws = new WebSocket("ws://127.0.0.1:5050")
+    ws.onopen = function() {
+        ws.send(JSON.stringify({ message_type: "join", room: "123" }));
+        ws.send(JSON.stringify({ message_type: "start"}));
+        ws.send(JSON.stringify({ message_type: "disconnect"}));
+    }
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let builder = cardBuilder(textures);
     let gameState = newGameState(1, 4);
