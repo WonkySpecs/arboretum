@@ -23,25 +23,20 @@ window.onload = function() {
 }
 
 function texturesLoaded(app) {
-    let ws = new WebSocket("ws://127.0.0.1:5050")
+    let ws = new WebSocket(config.wsURL)
     ws.onopen = function() {
         ws.send(JSON.stringify({ message_type: "join", room: "123" }));
         ws.send(JSON.stringify({ message_type: "start"}));
         ws.send(JSON.stringify({ message_type: "disconnect"}));
     }
-    let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
-    let builder = cardBuilder(textures);
     let gameState = newGameState(1, 4);
-    let appState = newAppState(app);
-    let s = appState.playerArboretumSize;
-    for ( let [x, y] of [[0, 0], [0, s.height - 64], [s.width - 40, 0], [s.width - 40, s.height - 64]]) {
-        console.log(x, y);
-        let card = builder.build(Math.floor(Math.random() * 8) + 1, config.suits[Math.floor(Math.random() * config.suits.length)]);
-        card.sprite.x = x;
-        card.sprite.y = y;
-        appState.playerArboretum.addChild(card.sprite);
-    }
-    let sync = stateSync(gameState, appState, null);
+    let sync = stateSync(gameState, newAppState(app), null);
+    let interactionHandler = newInteractionHandler(sync, gameState);
+    let messageHandler = newMessageHandler(ws);
+    let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
+    let builder = cardBuilder(textures, interactionHandler);
+    sync.setBuilder(builder);
+
     clock = 0;
     c = 0;
     app.ticker.add(function(delta) {
@@ -50,7 +45,7 @@ function texturesLoaded(app) {
             if ( c < 20) {
                 clock = 0;
                 c += 1;
-                sync.cardDrawn(builder.build(3, "oak"));
+                sync.cardDrawn(3, "oak");
             } else {
                 clock = 0;
                 sync.cardPlayed(gameState.hand[0]);
@@ -72,12 +67,12 @@ function splitSpriteSheet(sheet, app) {
     return textures;
 }
 
-function cardBuilder(textures, inputManager) {
+function cardBuilder(textures, interactionHandler) {
     return {
         build: function(value, suit) {
             let card = { val: value, suit: suit };
             let sprite = PIXI.Sprite.from(textures[suit]);
-            sprite.on('pointerdown', _ => cardClicked(card));
+            sprite.on('pointerdown', _ => interactionHandler.cardClicked(card));
             sprite.interactive = true;
 
             let text = new PIXI.Text(value.toString())
@@ -137,7 +132,7 @@ function newAppState(app) {
     }
 }
 
-function stateSync(gameState, appState, ws) {
+function stateSync(gameState, appState) {
     let resizeCardSpritesInHand = function(appState) {
         let numCards = appState.hand.children.length;
         let margin = 10;
@@ -147,17 +142,41 @@ function stateSync(gameState, appState, ws) {
             child.x = i * widthPerCard + margin;
         }
     }
+    let builder = null;
 
     return {
-        cardDrawn: function(card) {
+        cardDrawn: function(val, suit) {
+            let card = builder.build(val, suit);
             gameState.hand.push(card);
             appState.hand.addChild(card.sprite);
             resizeCardSpritesInHand(appState);
         },
-        cardPlayed: function(card) {
+        cardPlayed: function(val, suit) {
+            let card = builder.build(val, suit);
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
             appState.hand.removeChild(card.sprite);
             resizeCardSpritesInHand(appState);
-        }
+        },
+        removeCard: function(card) {
+            card.sprite.parent.removeChild(card.sprite);
+        },
+        setBuilder: function(b) { builder = b; },
     };
+}
+
+function newInteractionHandler(stateSync, gameState) {
+    return {
+        cardClicked: function(card) {
+            console.log("Clicked " + card.val + " of " + card.suit);
+            stateSync.removeCard(card);
+        },
+    };
+}
+
+function newMessageHandler(ws, stateSync) {
+    ws.onmessage = function(msg) {
+        console.log(msg);
+    }
+
+    return {};
 }
