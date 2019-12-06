@@ -205,8 +205,15 @@ class Player:
 
 
 class DrawTarget(Enum):
-    DECK = auto()
-    PLAYER_DISCARD = auto()
+    DECK = 'deck'
+    PLAYER_DISCARD = 'player_discard'
+
+    @staticmethod
+    def from_str(s: str) -> 'DrawTarget':
+        for e in DrawTarget:
+            if e.value == s:
+                return e
+        raise RuntimeError(f"Invalid draw target string '{s}'")
 
 
 class Game:

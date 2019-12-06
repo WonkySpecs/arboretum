@@ -27,7 +27,6 @@ function texturesLoaded(app) {
     ws.onopen = function() {
         ws.send(JSON.stringify({ message_type: "join", room: "123" }));
         ws.send(JSON.stringify({ message_type: "start"}));
-        ws.send(JSON.stringify({ message_type: "disconnect"}));
     }
     let gameState = newGameState(1, 4);
     let sync = stateSync(gameState, newAppState(app), null);
