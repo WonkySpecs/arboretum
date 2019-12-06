@@ -12,7 +12,7 @@ config = {
         "willow",
         "tulipPoplar"],
     cardSpriteWidth: 40,
-    wsURL: "ws://127.0.0.1"
+    wsURL: "ws://0.0.0.0:5050"
 }
 
 window.onload = function() {
