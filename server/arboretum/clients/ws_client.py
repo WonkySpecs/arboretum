@@ -2,14 +2,13 @@ import json
 import asyncio
 
 from arboretum.clients.messages import Message
-from arboretum.clients.base_client import BaseClient
+from arboretum.clients.base_client import AsyncBaseClient
 from arboretum.game.data import Card, Pos, DrawTarget
 
-class WSClient(BaseClient):
+class WSClient(AsyncBaseClient):
     def __init__(self, ws):
         super(WSClient, self).__init__()
         self.ws = ws
-        self.next = None
 
     async def next_message(self, target_msg_type: str):
         async for message in self.ws:
@@ -18,34 +17,22 @@ class WSClient(BaseClient):
                 self.next = play
                 break
 
-    def draw_generator(self):
+    async def draw_generator(self):
         while True:
-            try:
-                asyncio.get_event_loop().run_until_complete(
-                    self.next_message("draw"))
-            except RuntimeError:
-                print("YES IM IGNORING THIS")
-            if not self.next:
-                raise RuntimeError("WSClient draw generator failed to set next draw")
-            y = self.next
-            self.next = None
-            yield y
+            async for message in self.ws:
+                msg_type, draw = WSClient.parse_message(message)
+                if msg_type == "draw":
+                    yield draw
 
-    def play_generator(self):
+    async def play_generator(self):
         while True:
-            try:
-                asyncio.get_event_loop().run_until_complete(
-                    self.next_message("play"))
-            except RuntimeError:
-                print("YES IM IGNORING THIS")
-            if not self.next:
-                raise RuntimeError("WSClient play generator failed to set next play")
-            y = self.next
-            self.next = None
-            yield y
+            async for message in self.ws:
+                msg_type, play = WSClient.parse_message(message)
+                if msg_type == "play":
+                    yield play
 
     def receive(self, msg):
-        print("Yup I definitely received that")
+        print(f"Received {msg}, one day maybe I'll even use it")
 
     @staticmethod
     def parse_message(msg):

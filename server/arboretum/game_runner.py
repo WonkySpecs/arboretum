@@ -1,4 +1,5 @@
 from typing import Tuple, Optional, Dict
+import asyncio
 
 from arboretum.clients.base_client import BaseClient
 from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage
@@ -7,7 +8,10 @@ from arboretum.game.data import Game, DrawTarget, Card, Suit, Pos, Player
 from arboretum.game.scoring import score_game
 
 
-class Match:
+class GameRunner:
+    game: Game
+    player_clients: Dict[Player, BaseClient]
+
     def __init__(self, clients):
         self.game = Game(len(clients))
         self.player_clients = { p: c for (p, c) in zip(self.game.players, clients) }
@@ -15,13 +19,13 @@ class Match:
             for c in player.hand:
                 self.player_clients[player].receive(DrawMessage(card=c))
 
-    def run(self):
+    async def run(self):
         while not self.game.finished:
             cur_client = self.player_clients[self.game.current_player]
             for i in range(2):
                 valid = False
                 while not valid:
-                    draw_type, target = next(cur_client.gen_draw)
+                    draw_type, target = await GameRunner.next_input(cur_client, "draw")
                     valid, message = self.game.is_valid_draw_target(draw_type, target)
                     if not valid:
                         print(message)
@@ -36,7 +40,7 @@ class Match:
 
             valid = False
             while not valid:
-                play_card, pos, discard_card = next(cur_client.gen_play)
+                play_card, pos, discard_card = await GameRunner.next_input(cur_client, "play")
                 valid, message = self.game.current_player.is_valid_play(play_card, pos, discard_card)
                 if not valid:
                     print(message)
@@ -49,3 +53,17 @@ class Match:
 
     def score(self):
         return score_game(self.game.players)
+
+    @staticmethod
+    async def next_input(client, target_type):
+        if target_type == "draw":
+            if client.is_async:
+                return await client.gen_draw.__anext__()
+            else:
+                return next(client.gen_draw)
+        elif target_type == "play":
+            if client.is_async:
+                return await client.gen_play.__anext__()
+            else:
+                return next(client.gen_play)
+        raise RuntimeException(f"Unknown target_type {target_type}")

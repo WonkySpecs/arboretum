@@ -28,10 +28,10 @@ function texturesLoaded(app) {
         ws.send(JSON.stringify({ message_type: "join", room: "123" }));
         ws.send(JSON.stringify({ message_type: "start"}));
     }
+    let messageHandler = newMessageHandler(ws);
     let gameState = newGameState(1, 4);
     let sync = stateSync(gameState, newAppState(app), null);
     let interactionHandler = newInteractionHandler(sync, gameState);
-    let messageHandler = newMessageHandler(ws);
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let builder = cardBuilder(textures, interactionHandler);
     sync.setBuilder(builder);
@@ -173,9 +173,16 @@ function newInteractionHandler(stateSync, gameState) {
 }
 
 function newMessageHandler(ws, stateSync) {
-    ws.onmessage = function(msg) {
-        console.log(msg);
+    handler = {
+        handle: function(msg) {
+            console.log(msg);
+            msg = JSON.parse(msg.data)
+            if ( msg.message_type === "game_starting" ) {
+                console.log("Sending ready");
+                ws.send(JSON.stringify({"message_type": "ready"}));
+            }
+        },
     }
-
-    return {};
+    ws.onmessage = msg => handler.handle(msg);
+    return handler
 }
