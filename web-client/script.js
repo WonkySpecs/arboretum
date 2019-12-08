@@ -10,7 +10,18 @@ config = {
         "dogwood",
         "royalPoinciana",
         "willow",
-        "tulipPoplar"],
+        "tulipPoplar" ],
+    niceSuitNames: {
+        "Maple": "maple",
+        "Cassia": "cassia",
+        "Cherry Blossom": "cherryBlossom",
+        "Spruce": "spruce",
+        "Jacaranda": "jacaranda",
+        "Oak": "oak",
+        "Dogwood": "dogwood",
+        "Royal Poinciana": "royalPoinciana",
+        "Willow": "willow",
+        "Tulip Poplar": "tulipPoplar" },
     cardSpriteWidth: 40,
     wsURL: "ws://0.0.0.0:5050"
 }
@@ -28,29 +39,13 @@ function texturesLoaded(app) {
         ws.send(JSON.stringify({ message_type: "join", room: "123" }));
         ws.send(JSON.stringify({ message_type: "start"}));
     }
-    let messageHandler = newMessageHandler(ws);
     let gameState = newGameState(1, 4);
     let sync = stateSync(gameState, newAppState(app), null);
+    let messageHandler = newMessageHandler(ws, sync);
     let interactionHandler = newInteractionHandler(sync, gameState);
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let builder = cardBuilder(textures, interactionHandler);
     sync.setBuilder(builder);
-
-    clock = 0;
-    c = 0;
-    app.ticker.add(function(delta) {
-        clock += delta;
-        if (clock > 50) {
-            if ( c < 20) {
-                clock = 0;
-                c += 1;
-                sync.cardDrawn(3, "oak");
-            } else {
-                clock = 0;
-                sync.cardPlayed(gameState.hand[0]);
-            }
-        }
-    });
 
     document.body.appendChild(app.view);
 }
@@ -81,7 +76,7 @@ function cardBuilder(textures, interactionHandler) {
             card.sprite = sprite;
 
             return card;
-        }
+        },
     };
 }
 
@@ -159,7 +154,9 @@ function stateSync(gameState, appState) {
         removeCard: function(card) {
             card.sprite.parent.removeChild(card.sprite);
         },
-        setBuilder: function(b) { builder = b; },
+        setBuilder: function(b) {
+            builder = b;
+        },
     };
 }
 
@@ -180,6 +177,12 @@ function newMessageHandler(ws, stateSync) {
             if ( msg.message_type === "game_starting" ) {
                 console.log("Sending ready");
                 ws.send(JSON.stringify({"message_type": "ready"}));
+            } else if (msg.message_type === "draw" ) {
+                stateSync.cardDrawn(
+                    msg.card_value,
+                    config.niceSuitNames[msg.card_suit]);
+            } else {
+                console.log("Message with unknown type " + msg.message_type);
             }
         },
     }

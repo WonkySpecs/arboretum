@@ -27,7 +27,10 @@ class AsyncBaseClient(BaseClient):
         super(AsyncBaseClient, self).__init__(is_async=True)
 
     async def draw_generator(self) -> Iterator[Tuple[DrawTarget, Optional[int]]]:
-        self.raise_not_implemented("draw_generator")
+        self.raise_not_implemented("(async) draw_generator")
 
     async def play_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
-        self.raise_not_implemented("play_generator")
+        self.raise_not_implemented("(async) play_generator")
+
+    async def receive(self, msg) -> None:
+        self.raise_not_implemented("(async) receive")

@@ -19,7 +19,7 @@ class GameRunner:
     async def run(self):
         for player in self.game.players:
             for c in player.hand:
-                self.player_clients[player].receive(DrawMessage(card=c))
+                await self.broadcast(DrawMessage(card=c), [self.player_clients[player]])
 
         while not self.game.finished:
             for _ in range(2):
@@ -38,8 +38,8 @@ class GameRunner:
             else:
                 card = self.game.draw(draw_type, target)
                 self.game.current_player.hand.append(card)
-                self._cur_client.receive(DrawMessage(card=card))
-                self.broadcast(
+                await self.broadcast(DrawMessage(card=card), [self._cur_client])
+                await self.broadcast(
                     CardTakenMessage(player_num=target if target is not None else -1))
 
     async def handle_move(self):
@@ -51,8 +51,8 @@ class GameRunner:
                 print(message)
             else:
                 self.game.current_player.play(play_card, pos, discard_card)
-                self.broadcast(PlayMessage(play_card, pos, self.game.current_player.num))
-                self.broadcast(DiscardMessage(discard_card, self.game.current_player.num))
+                await self.broadcast(PlayMessage(play_card, pos, self.game.current_player.num))
+                await self.broadcast(DiscardMessage(discard_card, self.game.current_player.num))
 
     @property
     def _cur_client(self):
@@ -79,4 +79,4 @@ class GameRunner:
         clients = clients if clients else self.player_clients.values()
         for sync_client in [c for c in clients if not c.is_async]:
             sync_client.receive(message)
-        await asyncio.gather(*[c for c in clients if c.is_async])
+        await asyncio.gather(*[c.receive(message) for c in clients if c.is_async])

@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Optional
+import json
 
 from arboretum.game.data import Card, Pos
 
@@ -22,8 +23,15 @@ class Message:
         self.player_num = player_num
         self.pos = pos
 
-    def __str__(self):
-        return f"{self.msg_type}[card: {self.card}, player: {self.player_num}, pos: {self.pos}]"
+    def serialize(self):
+        d = { k: v for k, v in self.__dict__.items() if v }
+        if "card" in d:
+            d["card_suit"] = self.card.suit.value
+            d["card_value"] = self.card.value
+            del d["card"]
+        d["message_type"] = d["msg_type"].value
+        del d["msg_type"]
+        return json.dumps(d)
 
 
 class DrawMessage(Message):

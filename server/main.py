@@ -65,6 +65,8 @@ async def connect(ws, _):
         await asyncio.sleep(1)
         await game.run()
         print(game.score())
+    else:
+        await ws.wait_closed()
 
 
 if __name__ == "__main__":

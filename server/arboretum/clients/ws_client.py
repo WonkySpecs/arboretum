@@ -31,8 +31,8 @@ class WSClient(AsyncBaseClient):
                 if msg_type == "play":
                     yield play
 
-    def receive(self, msg):
-        print(f"Received {msg}, one day maybe I'll even use it")
+    async def receive(self, msg):
+        await self.ws.send(msg.serialize())
 
     @staticmethod
     def parse_message(msg):

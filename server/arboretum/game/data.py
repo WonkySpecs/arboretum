@@ -8,14 +8,14 @@ Pos = namedtuple("Pos", ["x", "y"])
 
 class Suit(Enum):
     CASSIA = "Cassia"
-    MAGNOLIA = "Magnolia"
+    SPRUCE = "Spruce"
     DOGWOOD = "Dogwood"
     MAPLE = "Maple"
     JACARANDA = "Jacaranda"
     ROYAL_POINCIANA = "Royal Poinciana"
-    OLIVE = "Olive"
+    CHERRY_BLOSSOM = "Cherry Blossom"
     OAK = "Oak"
-    LILAC = "Lilac"
+    TULIP_POPLAR = "Tulip Poplar"
     WILLOW = "Willow"
 
     @staticmethod
