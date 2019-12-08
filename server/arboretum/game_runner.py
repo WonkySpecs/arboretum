@@ -15,41 +15,48 @@ class GameRunner:
     def __init__(self, clients):
         self.game = Game(len(clients))
         self.player_clients = { p: c for (p, c) in zip(self.game.players, clients) }
+
+    async def run(self):
         for player in self.game.players:
             for c in player.hand:
                 self.player_clients[player].receive(DrawMessage(card=c))
 
-    async def run(self):
         while not self.game.finished:
-            cur_client = self.player_clients[self.game.current_player]
-            for i in range(2):
-                valid = False
-                while not valid:
-                    draw_type, target = await GameRunner.next_input(cur_client, "draw")
-                    valid, message = self.game.is_valid_draw_target(draw_type, target)
-                    if not valid:
-                        print(message)
-                    else:
-                        card = self.game.draw(draw_type, target)
-                        self.game.current_player.hand.append(card)
-                        cur_client.receive(DrawMessage(card=card))
-                        for client in self.player_clients.values():
-                            client.receive(
-                                CardTakenMessage(
-                                    player_num=target if target is not None else -1))
+            for _ in range(2):
+                await self.handle_draw()
+            await self.handle_move()
 
-            valid = False
-            while not valid:
-                play_card, pos, discard_card = await GameRunner.next_input(cur_client, "play")
-                valid, message = self.game.current_player.is_valid_play(play_card, pos, discard_card)
-                if not valid:
-                    print(message)
-                else:
-                    self.game.current_player.play(play_card, pos, discard_card)
-                    for client in self.player_clients.values():
-                        client.receive(PlayMessage(play_card, pos, self.game.current_player.num))
-                        client.receive(DiscardMessage(discard_card, self.game.current_player.num))
             self.game.player_turn = (self.game.player_turn + 1) % len(self.game.players)
+
+    async def handle_draw(self):
+        valid = False
+        while not valid:
+            draw_type, target = await GameRunner.next_input(self._cur_client, "draw")
+            valid, message = self.game.is_valid_draw_target(draw_type, target)
+            if not valid:
+                print(message)
+            else:
+                card = self.game.draw(draw_type, target)
+                self.game.current_player.hand.append(card)
+                self._cur_client.receive(DrawMessage(card=card))
+                self.broadcast(
+                    CardTakenMessage(player_num=target if target is not None else -1))
+
+    async def handle_move(self):
+        valid = False
+        while not valid:
+            play_card, pos, discard_card = await GameRunner.next_input(self._cur_client, "play")
+            valid, message = self.game.current_player.is_valid_play(play_card, pos, discard_card)
+            if not valid:
+                print(message)
+            else:
+                self.game.current_player.play(play_card, pos, discard_card)
+                self.broadcast(PlayMessage(play_card, pos, self.game.current_player.num))
+                self.broadcast(DiscardMessage(discard_card, self.game.current_player.num))
+
+    @property
+    def _cur_client(self):
+        return self.player_clients[self.game.current_player]
 
     def score(self):
         return score_game(self.game.players)
@@ -67,3 +74,9 @@ class GameRunner:
             else:
                 return next(client.gen_play)
         raise RuntimeException(f"Unknown target_type {target_type}")
+
+    async def broadcast(self, message, clients=None):
+        clients = clients if clients else self.player_clients.values()
+        for sync_client in [c for c in clients if not c.is_async]:
+            sync_client.receive(message)
+        await asyncio.gather(*[c for c in clients if c.is_async])
