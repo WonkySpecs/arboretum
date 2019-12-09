@@ -2,7 +2,7 @@ from typing import Tuple, Optional, Dict
 import asyncio
 
 from arboretum.clients.base_client import BaseClient
-from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage
+from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage, GameStartMessage
 from arboretum.clients.random_robot import RandomRobot
 from arboretum.game.data import Game, DrawTarget, Card, Suit, Pos, Player
 from arboretum.game.scoring import score_game
@@ -17,6 +17,14 @@ class GameRunner:
         self.player_clients = { p: c for (p, c) in zip(self.game.players, clients) }
 
     async def run(self):
+        for p, c in self.player_clients.items():
+            await self.broadcast(
+                GameStartMessage(
+                    player_num=p.num,
+                    num_players=len(self.game.players),
+                    cards_in_deck=len(self.game.deck)),
+                [c])
+
         for player in self.game.players:
             for c in player.hand:
                 await self.broadcast(DrawMessage(card=c), [self.player_clients[player]])
@@ -40,23 +48,45 @@ class GameRunner:
                 self.game.current_player.hand.append(card)
                 await self.broadcast(DrawMessage(card=card), [self._cur_client])
                 await self.broadcast(
-                    CardTakenMessage(player_num=target if target is not None else -1))
+                    CardTakenMessage(
+                        player_num=self._cur_player_num,
+                        target=target))
 
     async def handle_move(self):
         valid = False
         while not valid:
-            play_card, pos, discard_card = await GameRunner.next_input(self._cur_client, "play")
-            valid, message = self.game.current_player.is_valid_play(play_card, pos, discard_card)
+            play_card, play_pos, discard_card, discard_pile = \
+                await GameRunner.next_input(self._cur_client, "play")
+            valid, message = self.game.current_player.is_valid_play(
+                play_card,
+                pos,
+                discard_card)
+
             if not valid:
                 print(message)
             else:
-                self.game.current_player.play(play_card, pos, discard_card)
-                await self.broadcast(PlayMessage(play_card, pos, self.game.current_player.num))
-                await self.broadcast(DiscardMessage(discard_card, self.game.current_player.num))
+                self.game.current_player.play(
+                    play_card,
+                    play_pos,
+                    discard_card,
+                    discard_pile)
+                await self.broadcast(PlayMessage(
+                    player_num=self.game.current_player.num,
+                    card=play_card,
+                    pos=play_pos))
+
+                await self.broadcast(DiscardMessage(
+                    player_num=self.game.current_player.num,
+                    card=discard_card,
+                    pile=discard_pile))
 
     @property
     def _cur_client(self):
         return self.player_clients[self.game.current_player]
+
+    @property
+    def _cur_player_num(self):
+        return self.game.current_player.num
 
     def score(self):
         return score_game(self.game.players)

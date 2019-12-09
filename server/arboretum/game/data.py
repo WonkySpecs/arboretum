@@ -22,14 +22,14 @@ class Suit(Enum):
     def shortcuts() -> Dict[str, 'Suit']:
         return {
             "c": Suit.CASSIA,
-            "mg": Suit.MAGNOLIA,
+            "s": Suit.SPRUCE,
             "d": Suit.DOGWOOD,
             "m": Suit.MAPLE,
             "j": Suit.JACARANDA,
-            "r": Suit.ROYAL_POINCIANA,
-            "ol": Suit.OLIVE,
+            "rp": Suit.ROYAL_POINCIANA,
+            "tp": Suit.TULIP_POPLAR,
             "o": Suit.OAK,
-            "l": Suit.LILAC,
+            "cb": Suit.CHERRY_BLOSSOM,
             "w": Suit.WILLOW,
         }
 

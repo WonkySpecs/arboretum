@@ -18,9 +18,9 @@ class RandomRobot(BaseClient):
 
     def draw_generator(self):
         while True:
-            choices = [(DrawTarget.PLAYER_DISCARD, n) for n, c in self.discard_counts.items() if c > 0]
+            choices = [n for n, c in self.discard_counts.items() if c > 0]
             if self.cards_in_deck > 0:
-                choices.append((DrawTarget.DECK, None))
+                choices.append(None)
 
             yield random.choice(choices)
 
@@ -29,9 +29,10 @@ class RandomRobot(BaseClient):
             to_play, to_discard = random.sample(self.hand, k=2)
             self.hand.remove(to_play)
             self.hand.remove(to_discard)
-            yield to_play, \
-                  random.choice(self.available_places()), \
-                  to_discard
+            yield (to_play,
+                   random.choice(self.available_places()),
+                   to_discard,
+                   self.num)  # TODO: Discard to random pile
 
     def available_places(self):
         if not self.placed_at:

@@ -12,7 +12,7 @@ class BaseClient:
     def draw_generator(self) -> Iterator[Tuple[DrawTarget, Optional[int]]]:
         self.raise_not_implemented("draw_generator")
 
-    def move_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
+    def move_generator(self) -> Iterator[Tuple[Card, Pos, Card, int]]:
         self.raise_not_implemented("move_generator")
 
     def receive(self, msg) -> None:
@@ -29,7 +29,7 @@ class AsyncBaseClient(BaseClient):
     async def draw_generator(self) -> Iterator[Tuple[DrawTarget, Optional[int]]]:
         self.raise_not_implemented("(async) draw_generator")
 
-    async def move_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
+    async def move_generator(self) -> Iterator[Tuple[Card, Pos, Card, int]]:
         self.raise_not_implemented("(async) move_generator")
 
     async def receive(self, msg) -> None:

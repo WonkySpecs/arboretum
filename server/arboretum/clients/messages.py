@@ -10,18 +10,15 @@ class MessageType(Enum):
     DISCARD = "discard"
     PLAYED = "played"
     CARD_TAKEN = "taken"
+    GAME_START = "game_start"
 
 
 class Message:
     def __init__(self,
                  msg_type: MessageType,
-                 card: Optional[Card] = None,
-                 player_num: Optional[int] = None,
-                 pos: Optional[Pos] = None):
+                 player_num: int):
         self.msg_type = msg_type
-        self.card = card
         self.player_num = player_num
-        self.pos = pos
 
     def serialize(self):
         d = { k: v for k, v in self.__dict__.items() if v }
@@ -29,6 +26,12 @@ class Message:
             d["card_suit"] = self.card.suit.value
             d["card_value"] = self.card.value
             del d["card"]
+
+        if "pos" in d:
+            d["x"] = d.x
+            d["y"] = d.y
+            del d["pos"]
+
         d["message_type"] = d["msg_type"].value
         del d["msg_type"]
         return json.dumps(d)
@@ -36,19 +39,33 @@ class Message:
 
 class DrawMessage(Message):
     def __init__(self, card: Card):
-        super().__init__(MessageType.DRAW, card=card)
+        super().__init__(MessageType.DRAW, None)
+        self.card = card
 
 
 class DiscardMessage(Message):
-    def __init__(self, card: Card, player_num: int):
-        super().__init__(MessageType.DISCARD, card=card, player_num=player_num)
+    def __init__(self, card: Card, player_num: int, pile: int):
+        super().__init__(
+            MessageType.DISCARD,
+            player_num=player_num)
+        self.card = card
+        self.pile = pile
 
 
 class PlayMessage(Message):
     def __init__(self, card: Card, pos: Pos, player_num: int):
-        super().__init__(MessageType.PLAYED, card=card, pos=pos, player_num=player_num)
+        super().__init__(MessageType.PLAYED, player_num=player_num)
+        self.card = card
+        self.pos = pos
 
 
 class CardTakenMessage(Message):
-    def __init__(self, player_num: Optional[int]):
+    def __init__(self, player_num: int, target: Optional[int] = None):
         super().__init__(MessageType.CARD_TAKEN, player_num=player_num)
+        self.target = target
+
+class GameStartMessage(Message):
+    def __init__(self, player_num: int, num_players: int, cards_in_deck: int):
+        super().__init__(MessageType.GAME_START, player_num)
+        self.num_players = num_players
+        self.cards_in_deck = cards_in_deck
