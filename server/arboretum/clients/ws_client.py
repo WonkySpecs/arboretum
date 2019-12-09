@@ -1,9 +1,9 @@
 import json
 import asyncio
 
-from arboretum.clients.messages import Message
 from arboretum.clients.base_client import AsyncBaseClient
 from arboretum.game.data import Card, Pos, DrawTarget
+
 
 class WSClient(AsyncBaseClient):
     def __init__(self, ws):
@@ -24,7 +24,7 @@ class WSClient(AsyncBaseClient):
                 if msg_type == "draw":
                     yield draw
 
-    async def play_generator(self):
+    async def move_generator(self):
         while True:
             async for message in self.ws:
                 msg_type, play = WSClient.parse_message(message)
@@ -38,7 +38,7 @@ class WSClient(AsyncBaseClient):
     def parse_message(msg):
         d = json.load(msg)
         if d['msg_type'] == 'draw':
-            return (DrawTarget.from_str(d['target_type']), d['target_num'])
+            return DrawTarget.from_str(d['target_type']), d['target_num']
         elif d['msg_type'] == 'play':
             return (
                 Card(Suit.from_str(d['play_suit']), int(d['play_val'])),

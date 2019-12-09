@@ -58,7 +58,7 @@ for i in range(num_games):
 
         valid = False
         while not valid:
-            play_card, pos, discard_card = next(cur_client.gen_play)
+            play_card, pos, discard_card = next(cur_client.gen_move)
             valid, message = game.current_player.is_valid_play(play_card, pos, discard_card)
             if not valid:
                 print(message)

@@ -24,7 +24,7 @@ class RandomRobot(BaseClient):
 
             yield random.choice(choices)
 
-    def play_generator(self):
+    def move_generator(self):
         while True:
             to_play, to_discard = random.sample(self.hand, k=2)
             self.hand.remove(to_play)

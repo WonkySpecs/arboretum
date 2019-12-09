@@ -6,14 +6,14 @@ from arboretum.game.data import Card, Pos, DrawTarget
 class BaseClient:
     def __init__(self, is_async=False):
         self.is_async = is_async
-        self.gen_play = self.play_generator()
+        self.gen_move = self.move_generator()
         self.gen_draw = self.draw_generator()
 
     def draw_generator(self) -> Iterator[Tuple[DrawTarget, Optional[int]]]:
         self.raise_not_implemented("draw_generator")
 
-    def play_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
-        self.raise_not_implemented("play_generator")
+    def move_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
+        self.raise_not_implemented("move_generator")
 
     def receive(self, msg) -> None:
         self.raise_not_implemented("receive")
@@ -29,8 +29,8 @@ class AsyncBaseClient(BaseClient):
     async def draw_generator(self) -> Iterator[Tuple[DrawTarget, Optional[int]]]:
         self.raise_not_implemented("(async) draw_generator")
 
-    async def play_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
-        self.raise_not_implemented("(async) play_generator")
+    async def move_generator(self) -> Iterator[Tuple[Card, Pos, Card]]:
+        self.raise_not_implemented("(async) move_generator")
 
     async def receive(self, msg) -> None:
         self.raise_not_implemented("(async) receive")
