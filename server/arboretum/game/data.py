@@ -73,7 +73,7 @@ def new_deck(num_suits: int, chosen_suits: Optional[List[Suit]] = None) -> List[
     if chosen_suits and len(chosen_suits) != num_suits:
         raise ValueError(
             f"Supposed to generate deck with {num_suits} suits, but was given {len(chosen_suits)} chosen suits")
-    suits = chosen_suits if chosen_suits else random.choices(list(Suit), k=num_suits)
+    suits = chosen_suits if chosen_suits else random.sample(list(Suit), k=num_suits)
     deck = [Card(suit, val) for suit in suits for val in range(1, 9)]
     random.shuffle(deck)
     return deck
