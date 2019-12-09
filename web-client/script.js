@@ -47,7 +47,7 @@ function texturesLoaded(app) {
     let builder = cardBuilder(textures, interactionHandler);
     sync.setBuilder(builder);
 
-    document.body.appendChild(app.view);
+    document.getElementById("gameCanvas").appendChild(app.view);
 }
 
 function splitSpriteSheet(sheet, app) {
@@ -78,10 +78,6 @@ function cardBuilder(textures, interactionHandler) {
             return card;
         },
     };
-}
-
-function cardClicked(card) {
-    console.log("Clicked " + card.val + " of " + card.suit);
 }
 
 function newGameState(playerNum, numPlayers) {
@@ -174,6 +170,7 @@ function newMessageHandler(ws, stateSync) {
         handle: function(msg) {
             console.log(msg);
             msg = JSON.parse(msg.data)
+            this._log(msg);
             if ( msg.message_type === "game_starting" ) {
                 console.log("Sending ready");
                 ws.send(JSON.stringify({"message_type": "ready"}));
@@ -184,6 +181,17 @@ function newMessageHandler(ws, stateSync) {
             } else {
                 console.log("Message with unknown type " + msg.message_type);
             }
+        },
+        _log: function(msg) {
+            let kvs = [];
+            Object.keys(msg).forEach((k, _) => kvs.push(k + ": " + msg[k]));
+            let log = document.createElement("p");
+            log.innerHTML = kvs.reduce(
+                function(acc, s, i) {
+                    if ( i === 0 ) { return acc + s; }
+                    else { return acc + ", " + s; }},
+                "Message: ");
+            document.getElementById("messageLog").appendChild(log);
         },
     }
     ws.onmessage = msg => handler.handle(msg);
