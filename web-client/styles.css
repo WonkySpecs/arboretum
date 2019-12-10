@@ -1,0 +1,4 @@
+#messageLog {
+    max-height: 12em;
+    overflow: scroll;
+}

@@ -12,37 +12,28 @@ class WSClient(AsyncBaseClient):
 
     async def next_message(self, target_msg_type: str):
         async for message in self.ws:
-            msg_type, play = WSClient.parse_message(message)
-            if msg_type == target_msg_type:
-                self.next = play
-                break
+            d = json.load(msg)
+            if d['message_type'] != target_msg_type:
+                continue
+
+            if d['message_type'] == 'draw':
+                return d.get('draw_target')
+            elif d['message_type'] == 'play':
+                return (
+                    Card(Suit.from_str(d['play_suit']), int(d['play_val'])),
+                    Pos(x=int(d['play_x']), y=int(d['play_y'])),
+                    Card(Suit.from_str(d['discard_suit']), int(d['discard_val'])),
+                    d['discard_pile'])
+            raise RuntimeError(
+                f"Unknown message type '{d['msg_type']}'. Message {msg}")
 
     async def draw_generator(self):
         while True:
-            async for message in self.ws:
-                msg_type, draw = WSClient.parse_message(message)
-                if msg_type == "draw":
-                    yield draw
+            yield await self.next_message('draw')
 
     async def move_generator(self):
         while True:
-            async for message in self.ws:
-                msg_type, play = WSClient.parse_message(message)
-                if msg_type == "play":
-                    yield play
+            yield await self.next_message('draw')
 
     async def receive(self, msg):
         await self.ws.send(msg.serialize())
-
-    @staticmethod
-    def parse_message(msg):
-        d = json.load(msg)
-        if d['msg_type'] == 'draw':
-            return DrawTarget.from_str(d['target_type']), d['target_num']
-        elif d['msg_type'] == 'play':
-            return (
-                Card(Suit.from_str(d['play_suit']), int(d['play_val'])),
-                Pos(x=int(d['play_x']), y=int(d['play_y'])),
-                Card(Suit.from_str(d['discard_suit']), int(d['discard_val'])),
-                d['discard_pile'])
-        raise RuntimeError(f"Unknown message type '{d['msg_type']}'. Message {msg}")

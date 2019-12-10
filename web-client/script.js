@@ -1,6 +1,6 @@
 config = {
     canvas: { width: 1080, height: 720 },
-    suits: [
+    textures: [
         "maple",
         "cassia",
         "cherryBlossom",
@@ -10,7 +10,8 @@ config = {
         "dogwood",
         "royalPoinciana",
         "willow",
-        "tulipPoplar" ],
+        "tulipPoplar",
+        "deck" ],
     niceSuitNames: {
         "Maple": "maple",
         "Cassia": "cassia",
@@ -40,12 +41,12 @@ function texturesLoaded(app) {
         ws.send(JSON.stringify({ message_type: "start"}));
     }
     let gameState = newGameState(1, 4);
-    let sync = stateSync(gameState, newAppState(app), null);
+    let sync = newStateSync(gameState, newAppState(app), null);
     let messageHandler = newMessageHandler(ws, sync);
     let interactionHandler = newInteractionHandler(sync, gameState);
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
-    let builder = cardBuilder(textures, interactionHandler);
-    sync.setBuilder(builder);
+    let spriteBuilder = newSpriteBuilder(textures, interactionHandler);
+    sync.setBuilder(spriteBuilder);
 
     document.getElementById("gameCanvas").appendChild(app.view);
 }
@@ -53,17 +54,17 @@ function texturesLoaded(app) {
 function splitSpriteSheet(sheet, app) {
     let cardHeight = sheet.height;
     let textures = {};
-    for ( let i = 0; i < config.suits.length; i++ ) {
-        textures[config.suits[i]] = new PIXI.Texture(
+    for ( let i = 0; i < config.textures.length; i++ ) {
+        textures[config.textures[i]] = new PIXI.Texture(
             sheet,
             new PIXI.Rectangle(i * config.cardSpriteWidth, 0, config.cardSpriteWidth, cardHeight));
     }
     return textures;
 }
 
-function cardBuilder(textures, interactionHandler) {
+function newSpriteBuilder(textures, interactionHandler) {
     return {
-        build: function(value, suit) {
+        buildCard: function(value, suit) {
             let card = { val: value, suit: suit };
             let sprite = PIXI.Sprite.from(textures[suit]);
             sprite.on('pointerdown', _ => interactionHandler.cardClicked(card));
@@ -76,6 +77,14 @@ function cardBuilder(textures, interactionHandler) {
             card.sprite = sprite;
 
             return card;
+        },
+        buildDeck: function(numCards) {
+            let deckSprite = PIXI.Sprite.from(textures.deck);
+            let text = new PIXI.Text(numCards.toString());
+            text.x = 50;
+            text.y = 20;
+            deckSprite.addChild(text);
+            return deckSprite;
         },
     };
 }
@@ -111,40 +120,54 @@ function newAppState(app) {
 
     return {
         app: app,
-        hand: handContainer,
+        handContainer: handContainer,
         handSize: handRect,
         playerDiscard: playerDiscardContainer,
         playerDiscardSize: playerDiscardRect,
-        deck: deckContainer,
+        deckContainer: deckContainer,
         deckSize: deckRect,
         playerArboretum: playerArboretum,
         playerArboretumSize: playerArboretumRect,
+        addChild: c => app.stage.addChild(c),
     }
 }
 
-function stateSync(gameState, appState) {
+function newStateSync(gameState, appState) {
     let resizeCardSpritesInHand = function(appState) {
-        let numCards = appState.hand.children.length;
+        let numCards = appState.handContainer.children.length;
         let margin = 10;
         let widthPerCard = Math.floor((appState.handSize.width - margin * 2) / numCards);
         for (let i = 0; i < numCards; i++) {
-            let child = appState.hand.children[i];
+            let child = appState.handContainer.children[i];
             child.x = i * widthPerCard + margin;
         }
     }
     let builder = null;
 
     return {
+        newGame: function(numPlayers, numCards) {
+            let deck = builder.buildDeck(numCards);
+            deck.x = 5;
+            deck.y = 50;
+            deck.on('pointerdown', _ => console.log("shit more circles"));
+            appState.deckContainer.addChild(deck);
+            let tempInfoTextThing = new PIXI.Text(
+                numPlayers.toString() + "-player game",
+                new PIXI.TextStyle({
+                    fill: 'white'
+                }));
+            appState.addChild(tempInfoTextThing);
+        },
         cardDrawn: function(val, suit) {
-            let card = builder.build(val, suit);
+            let card = builder.buildCard(val, suit);
             gameState.hand.push(card);
-            appState.hand.addChild(card.sprite);
+            appState.handContainer.addChild(card.sprite);
             resizeCardSpritesInHand(appState);
         },
         cardPlayed: function(val, suit) {
-            let card = builder.build(val, suit);
+            let card = builder.buildCard(val, suit);
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
-            appState.hand.removeChild(card.sprite);
+            appState.handContainer.removeChild(card.sprite);
             resizeCardSpritesInHand(appState);
         },
         removeCard: function(card) {
@@ -166,6 +189,7 @@ function newInteractionHandler(stateSync, gameState) {
 }
 
 function newMessageHandler(ws, stateSync) {
+    let player_num = null;
     handler = {
         handle: function(msg) {
             console.log(msg);
@@ -178,6 +202,11 @@ function newMessageHandler(ws, stateSync) {
                 stateSync.cardDrawn(
                     msg.card_value,
                     config.niceSuitNames[msg.card_suit]);
+            } else if (msg.message_type === "game_start" ) {
+                stateSync.newGame(
+                    msg.num_players, msg.cards_in_deck);
+                player_num = msg.player_num;
+
             } else {
                 console.log("Message with unknown type " + msg.message_type);
             }
