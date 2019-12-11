@@ -78,9 +78,9 @@ function newSpriteBuilder(textures, interactionHandler) {
         },
         buildDeck: function(numCards) {
             let deckSprite = PIXI.Sprite.from(textures.deck);
-            let text = new PIXI.Text(numCards.toString());
-            text.x = 50;
-            text.y = 20;
+            let text = new PIXI.Text(numCards.toString(), new PIXI.TextStyle( { fill: "blue" } ));
+            text.x = 2;
+            text.y = 25;
             deckSprite.addChild(text);
             return deckSprite;
         },
@@ -100,8 +100,6 @@ function newGameState(playerNum, numPlayers) {
 function newAppState(app) {
     let handContainer = new PIXI.Container();
     let handRect = new PIXI.Rectangle(0, config.canvas.height - 100, config.canvas.width / 2, 100);
-    handContainer.x = handRect.x;
-    handContainer.y = handRect.y;
 
     let playerDiscardContainer = new PIXI.Container();
     let playerDiscardRect = new PIXI.Rectangle(config.canvas.width / 2 - 60, config.canvas.height - handRect.height - 80, 60, 80);
@@ -112,7 +110,13 @@ function newAppState(app) {
     let playerArboretum = new PIXI.Container();
     let playerArboretumRect = new PIXI.Rectangle(0, 0, config.canvas.width / 2, config.canvas.height - handRect.height - deckRect.height);
 
-    for (container of [handContainer, playerDiscardContainer, deckContainer, playerArboretum] ) {
+    for ([container, rect] of [
+            [handContainer, handRect],
+            [playerDiscardContainer, playerDiscardRect],
+            [deckContainer, deckRect],
+            [playerArboretum, playerArboretumRect]] ) {
+        container.x = rect.x;
+        container.y = rect.y;
         app.stage.addChild(container);
     }
 
@@ -149,8 +153,6 @@ function newStateSync(gameState, appState) {
     return {
         newGame: function(numPlayers, numCards) {
             let deck = builder.buildDeck(numCards);
-            deck.x = 5;
-            deck.y = 50;
             deck.on('pointerdown', _ => console.log("shit more circles"));
             appState.deckContainer.addChild(deck);
             let tempInfoTextThing = new PIXI.Text(
