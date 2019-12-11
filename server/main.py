@@ -55,7 +55,7 @@ async def connect(ws, _):
                 break
 
         elif parsed["message_type"] == "ready":
-            print(f"Player {player_num} is ready")
+            print(f"User {user_num} is ready")
             break
 
     if game:
