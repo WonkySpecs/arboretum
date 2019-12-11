@@ -38,7 +38,7 @@ window.onload = function() {
 function texturesLoaded(app) {
     let ws = new WebSocket(config.wsURL)
     bindLobbyButtonFunctions(ws);
-    let gameState = newGameState(1, 4);
+    let gameState = initGameState();
     let sync = newStateSync(gameState, newAppState(app), null);
     let messageHandler = newMessageHandler(ws, sync);
     let interactionHandler = newInteractionHandler(sync, gameState);
@@ -89,13 +89,15 @@ function newSpriteBuilder(textures, interactionHandler) {
     };
 }
 
-function newGameState(playerNum, numPlayers) {
+function initGameState() {
     return {
-        playerNum: playerNum,
-        currentPlayer: 1,
-        hand: [],
-        discards: [...Array(numPlayers)].map(_ => []),
-        arboretums: [...Array(numPlayers)].map(_ => []),
+        start: function(playerNum, numPlayers, cardsInDeck) {
+            this.playerNum = playerNum;
+            this.currentPlayer = 1;
+            this.hand = [];
+            this.discards = [...Array(numPlayers)].map(_ => []);
+            this.arboretums = [...Array(numPlayers)].map(_ => []);
+        }
     }
 }
 
@@ -153,7 +155,8 @@ function newStateSync(gameState, appState) {
     let builder = null;
 
     return {
-        newGame: function(numPlayers, numCards) {
+        newGame: function(yourNum, numPlayers, numCards) {
+            gameState.start(yourNum, numPlayers, numCards);
             let deck = builder.buildDeck(numCards);
             appState.deckContainer.addChild(deck);
             let tempInfoTextThing = new PIXI.Text(
@@ -212,7 +215,7 @@ function newMessageHandler(ws, stateSync) {
                     config.niceSuitNames[msg.card_suit]);
             } else if (msg.message_type === "game_start" ) {
                 stateSync.newGame(
-                    msg.num_players, msg.cards_in_deck);
+                    msg.player_num, msg.num_players, msg.cards_in_deck);
                 player_num = msg.player_num;
 
             } else {
