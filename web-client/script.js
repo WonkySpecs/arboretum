@@ -134,19 +134,19 @@ function newAppState(app) {
         playerDiscard: playerDiscardContainer,
         deckContainer: deckContainer,
         playerArboretum: playerArboretum,
+        resizeCardsInHand: function() {
+            let numCards = handContainer.children.length;
+            let margin = 10;
+            let widthPerCard = Math.floor((handRect.width - margin * 2) / numCards);
+            for (let i = 0; i < numCards; i++) {
+                let child = handContainer.children[i];
+                child.x = i * widthPerCard + margin;
+            }
+        }
     }
 }
 
 function newStateSync(gameState, appState) {
-    let resizeCardSpritesInHand = function(appState) {
-        let numCards = appState.handContainer.children.length;
-        let margin = 10;
-        let widthPerCard = Math.floor((appState.handSize.width - margin * 2) / numCards);
-        for (let i = 0; i < numCards; i++) {
-            let child = appState.handContainer.children[i];
-            child.x = i * widthPerCard + margin;
-        }
-    }
     let builder = null;
 
     return {
@@ -167,13 +167,13 @@ function newStateSync(gameState, appState) {
             let card = builder.buildCard(val, suit);
             gameState.hand.push(card);
             appState.handContainer.addChild(card.sprite);
-            resizeCardSpritesInHand(appState);
+            appState.resizeCardsInHand(appState);
         },
         cardPlayed: function(val, suit) {
             let card = builder.buildCard(val, suit);
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
             appState.handContainer.removeChild(card.sprite);
-            resizeCardSpritesInHand(appState);
+            resizeCardsInHand(appState);
         },
         removeCard: function(card) {
             card.sprite.parent.removeChild(card.sprite);
