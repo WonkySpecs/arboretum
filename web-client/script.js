@@ -78,6 +78,8 @@ function newSpriteBuilder(textures, interactionHandler) {
         },
         buildDeck: function(numCards) {
             let deckSprite = PIXI.Sprite.from(textures.deck);
+            deckSprite.on('pointerdown', _ => interactionHandler.deckClicked());
+            deckSprite.interactive = true;
             let text = new PIXI.Text(numCards.toString(), new PIXI.TextStyle( { fill: "blue" } ));
             text.x = 2;
             text.y = 25;
@@ -153,7 +155,6 @@ function newStateSync(gameState, appState) {
     return {
         newGame: function(numPlayers, numCards) {
             let deck = builder.buildDeck(numCards);
-            deck.on('pointerdown', _ => console.log("shit more circles"));
             appState.deckContainer.addChild(deck);
             let tempInfoTextThing = new PIXI.Text(
                 numPlayers.toString() + "-player game",
@@ -188,6 +189,9 @@ function newInteractionHandler(stateSync, gameState) {
         cardClicked: function(card) {
             console.log("Clicked " + card.val + " of " + card.suit);
             stateSync.removeCard(card);
+        },
+        deckClicked: function() {
+            stateSync.cardDrawn(123, "oak");
         },
     };
 }
