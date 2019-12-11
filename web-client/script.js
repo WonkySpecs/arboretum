@@ -24,7 +24,8 @@ config = {
         "Willow": "willow",
         "Tulip Poplar": "tulipPoplar" },
     cardSpriteWidth: 40,
-    wsURL: "ws://0.0.0.0:5050"
+    wsURL: "ws://0.0.0.0:5050",
+    areaBoundsVisible: true,
 }
 
 window.onload = function() {
@@ -118,17 +119,21 @@ function newAppState(app) {
         app.stage.addChild(container);
     }
 
+    if (config.areaBoundsVisible === true) {
+        let debugRects = new PIXI.Graphics();
+        debugRects.lineStyle(3, 0xFF0000);
+        for (rect of [handRect, playerDiscardRect, deckRect, playerArboretumRect]) {
+            debugRects.drawRect(rect.x, rect.y, rect.width, rect.height);
+        }
+        app.stage.addChild(debugRects);
+    }
+
     return {
         app: app,
         handContainer: handContainer,
-        handSize: handRect,
         playerDiscard: playerDiscardContainer,
-        playerDiscardSize: playerDiscardRect,
         deckContainer: deckContainer,
-        deckSize: deckRect,
         playerArboretum: playerArboretum,
-        playerArboretumSize: playerArboretumRect,
-        addChild: c => app.stage.addChild(c),
     }
 }
 
@@ -156,7 +161,7 @@ function newStateSync(gameState, appState) {
                 new PIXI.TextStyle({
                     fill: 'white'
                 }));
-            appState.addChild(tempInfoTextThing);
+            appState.app.stage.addChild(tempInfoTextThing);
         },
         cardDrawn: function(val, suit) {
             let card = builder.buildCard(val, suit);
