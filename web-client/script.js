@@ -37,10 +37,7 @@ window.onload = function() {
 
 function texturesLoaded(app) {
     let ws = new WebSocket(config.wsURL)
-    ws.onopen = function() {
-        ws.send(JSON.stringify({ message_type: "join", room: "123" }));
-        ws.send(JSON.stringify({ message_type: "start"}));
-    }
+    bindLobbyButtonFunctions(ws);
     let gameState = newGameState(1, 4);
     let sync = newStateSync(gameState, newAppState(app), null);
     let messageHandler = newMessageHandler(ws, sync);
@@ -230,4 +227,17 @@ function newMessageHandler(ws, stateSync) {
     }
     ws.onmessage = msg => handler.handle(msg);
     return handler
+}
+
+function bindLobbyButtonFunctions(ws) {
+    // Adhoc lobby system until I put something real in
+    document.getElementById("joinBtn").onclick = function() {
+        ws.send(JSON.stringify({
+            "message_type": "join",
+            "lobby": document.getElementById("roomIdInput").value }));
+    };
+
+    document.getElementById("startBtn").onclick = function() {
+        ws.send(JSON.stringify({ "message_type": "start" }));
+    };
 }

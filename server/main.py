@@ -17,7 +17,7 @@ def new_game(sockets):
     return GameRunner([WSClient(ws) for ws in sockets])
 
 async def connect(ws, _):
-    lobby_id = None
+    in_lobby = None
     p_num = None
     global lobbies
     global next_user_num
@@ -29,29 +29,32 @@ async def connect(ws, _):
         parsed = json.loads(message)
         print(f"User {user_num} received {parsed}")
         if parsed["message_type"] == "join":
-            if lobby_id:
-                lobbies[lobby_id].remove(ws)
-                if not lobbies[lobby_id]:
-                    print(f"Closing lobby {lobby_id}")
-                    del lobbies[lobby_id]
+            to_join = parsed["lobby"]
+            if to_join != in_lobby:
+                if in_lobby:
+                    lobbies[in_lobby].remove(ws)
+                    if not lobbies[in_lobby]:
+                        print(f"Closing empty lobby {in_lobby}")
+                        del lobbies[in_lobby]
 
-            if parsed["room"] != lobby_id:
-                print(f"User {user_num} joined room {parsed['room']}")
-                lobby_id = parsed["room"]
-                if lobby_id in lobbies:
-                    lobbies[lobby_id].append(ws)
-                else:
-                    lobbies[lobby_id] = [ws]
-                p_num = len(lobbies[lobby_id])
+                if to_join != in_lobby:
+                    in_lobby = to_join
+                    print(f"User {user_num} joined room {to_join}")
+                    if to_join in lobbies:
+                        lobbies[to_join].append(ws)
+                    else:
+                        print(f"Opening lobby {to_join}")
+                        lobbies[to_join] = [ws]
+                    p_num = len(lobbies[to_join])
 
         elif parsed["message_type"] == "start":
-            in_lobby_count = len(lobbies[lobby_id])
+            in_lobby_count = len(lobbies[in_lobby])
             if in_lobby_count < 2 or in_lobby_count > 4:
                 print(f"Cannot start game with {in_lobby_count} players")
             else:
-                print(f"User {user_num} started game {lobby_id} with {in_lobby_count} players")
-                game = new_game(lobbies[lobby_id])
-                await asyncio.gather(*[client.send(json.dumps({"message_type": "game_starting"})) for client in lobbies[lobby_id] if client != ws])
+                print(f"User {user_num} started game {in_lobby} with {in_lobby_count} players")
+                game = new_game(lobbies[in_lobby])
+                await asyncio.gather(*[client.send(json.dumps({"message_type": "game_starting"})) for client in lobbies[in_lobby] if client != ws])
                 break
 
         elif parsed["message_type"] == "ready":
