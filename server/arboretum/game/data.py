@@ -153,25 +153,6 @@ class Arboretum:
                 else:
                     queue.append((next_pos, next_path))
 
-    def formatted(self):
-        if not self.grid:
-            return ""
-        min_x = min([p.x for p in self.grid.keys()])
-        min_y = min([p.y for p in self.grid.keys()])
-        max_x = max([p.x for p in self.grid.keys()])
-        max_y = max([p.y for p in self.grid.keys()])
-
-        grid = [[f"{'':3}" for _ in range(min_x, max_x + 1)] for _ in range(min_y, max_y + 1)]
-        for pos, card in self.grid.items():
-            grid[pos.y][pos.x] = card.short_format()
-        ret = [[f"{'Row ' + str(i):6}:", *row] for i, row in enumerate(grid)]
-        col_nums = [f"{'':6}"] + [f"{i:3}" for i in range(min_x, max_x + 1)]
-        ret.insert(0, col_nums)
-        s = ""
-        for row in ret:
-            s += str(row) + "\n"
-        return s
-
 
 class Player:
     __slots__ = ("num", "hand", "discard", "arboretum")
@@ -204,18 +185,6 @@ class Player:
         self.hand.remove(to_discard)
 
 
-class DrawTarget(Enum):
-    DECK = 'deck'
-    PLAYER_DISCARD = 'player_discard'
-
-    @staticmethod
-    def from_str(s: str) -> 'DrawTarget':
-        for e in DrawTarget:
-            if e.value == s:
-                return e
-        raise RuntimeError(f"Invalid draw target string '{s}'")
-
-
 class Game:
     STARTING_CARDS = 7
     players: List[Player]
@@ -236,29 +205,29 @@ class Game:
             return num_players * 2 + 2
         raise ValueError("Number of players must be 2, 3, or 4")
 
-    def is_valid_draw_target(self, target: DrawTarget, player_num: Optional[int] = None) -> Tuple[bool, Optional[str]]:
-        if target == DrawTarget.DECK:
+    def is_valid_draw_target(self, target_discard: Optional[int]) -> Tuple[bool, Optional[str]]:
+        if target_discard == None:
             if self.deck:
                 return True, None
             else:
                 exit(-1)
                 return False, "No cards left in deck to draw"
 
-        valid = len(self.players[player_num].discard) > 0
+        valid = len(self.players[target_discard].discard) > 0
         if valid:
             return True, None
         else:
             exit(-1)
-            return False, f"Cannot take from player {player_num}, they have no discard pile"
+            return False, f"Cannot take from player {target_discard}, they have no discard pile"
 
-    def draw(self, target: DrawTarget, player_num: Optional[int] = None) -> Card:
-        if target == DrawTarget.DECK:
+    def draw(self, target_discard: Optional[int]) -> Card:
+        if not target_discard:
             drawn_card = self.deck.pop()
             if not self.deck:
                 self.finished = True
             return drawn_card
 
-        return self.players[player_num].discard.pop()
+        return self.players[target_discard].discard.pop()
 
     @property
     def current_player(self) -> Player:

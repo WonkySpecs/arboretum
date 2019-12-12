@@ -2,7 +2,7 @@ import json
 import asyncio
 
 from arboretum.clients.base_client import AsyncBaseClient
-from arboretum.game.data import Card, Pos, DrawTarget
+from arboretum.game.data import Card, Pos
 
 
 class WSClient(AsyncBaseClient):

@@ -4,7 +4,7 @@ from typing import Dict
 
 from arboretum.clients.base_client import BaseClient
 from arboretum.clients.messages import MessageType
-from arboretum.game.data import DrawTarget, Pos
+from arboretum.game.data import Pos
 
 
 class RandomRobot(BaseClient):

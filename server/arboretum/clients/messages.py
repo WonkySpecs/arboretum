@@ -60,9 +60,9 @@ class PlayMessage(Message):
 
 
 class CardTakenMessage(Message):
-    def __init__(self, player_num: int, target: Optional[int] = None):
+    def __init__(self, player_num: int, target_discard: Optional[int] = None):
         super().__init__(MessageType.CARD_TAKEN, player_num=player_num)
-        self.target = target
+        self.target_discard = target_discard
 
 class GameStartMessage(Message):
     def __init__(self, player_num: int, num_players: int, cards_in_deck: int):

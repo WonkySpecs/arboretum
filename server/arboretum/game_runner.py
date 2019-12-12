@@ -4,7 +4,7 @@ import asyncio
 from arboretum.clients.base_client import BaseClient
 from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage, GameStartMessage
 from arboretum.clients.random_robot import RandomRobot
-from arboretum.game.data import Game, DrawTarget, Card, Suit, Pos, Player
+from arboretum.game.data import Game, Card, Suit, Pos, Player
 from arboretum.game.scoring import score_game
 
 
@@ -39,18 +39,16 @@ class GameRunner:
     async def handle_draw(self):
         valid = False
         while not valid:
-            draw_type, target = await GameRunner.next_input(self._cur_client, "draw")
-            valid, message = self.game.is_valid_draw_target(draw_type, target)
+            target_discard = await GameRunner.next_input(self._cur_client, "draw")
+            valid, message = self.game.is_valid_draw_target(target_discard)
             if not valid:
                 print(message)
             else:
-                card = self.game.draw(draw_type, target)
+                card = self.game.draw(target_discard)
                 self.game.current_player.hand.append(card)
                 await self.broadcast(DrawMessage(card=card), [self._cur_client])
-                await self.broadcast(
-                    CardTakenMessage(
-                        player_num=self._cur_player_num,
-                        target=target))
+                await self.broadcast(CardTakenMessage(
+                    player_num=self.game.current_player, target_discard=target_discard))
 
     async def handle_move(self):
         valid = False
