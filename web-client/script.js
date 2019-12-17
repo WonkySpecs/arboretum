@@ -92,16 +92,18 @@ function newSpriteBuilder(textures, interactionHandler) {
 function initGameState() {
     return {
         start: function(playerNum, numPlayers, cardsInDeck) {
-            this.playerNum = playerNum;
-            this.currentPlayer = 1;
+            this.myNum = playerNum;
+            this.currentPlayer = 0;
             this.hand = [];
             this.discards = [...Array(numPlayers)].map(_ => []);
+            // TODO: Arboretum data structure. Object? 2D array?
             this.arboretums = [...Array(numPlayers)].map(_ => []);
         }
     }
 }
 
 function newAppState(app) {
+    // TODO: Make all sizes relative to stage size
     let handContainer = new PIXI.Container();
     let handRect = new PIXI.Rectangle(0, config.canvas.height - 100, config.canvas.width / 2, 100);
 
@@ -129,7 +131,6 @@ function newAppState(app) {
     for (rect of [handRect, playerDiscardRect, deckRect, playerArboretumRect]) {
         debugRects.drawRect(rect.x, rect.y, rect.width, rect.height);
     }
-    debugRects.visible = document.getElementById("debugCheckbox").checked
     app.stage.addChild(debugRects);
 
     return {
@@ -223,6 +224,8 @@ function newMessageHandler(ws, stateSync) {
             }
         },
         _log: function(msg) {
+            // Write message to 'log' element, as a game history/info for player.
+            // TODO: Better message format. Do a layout function per message type.
             let kvs = [];
             Object.keys(msg).forEach((k, _) => kvs.push(k + ": " + msg[k]));
             let log = document.createElement("p");
@@ -239,6 +242,8 @@ function newMessageHandler(ws, stateSync) {
 }
 
 function bindControls(appState, ws) {
+    // Bind the event handlers of all HTML controls.
+    // Will hopefully eventually replace most/all with PIXI rendered controls.
     debugCheckbox = document.getElementById("debugCheckbox");
     debugCheckbox.onchange = function() {
         appState.debugRects.visible = debugCheckbox.checked;
