@@ -25,7 +25,6 @@ config = {
         "Tulip Poplar": "tulipPoplar" },
     cardSpriteWidth: 40,
     wsURL: "ws://0.0.0.0:5050",
-    areaBoundsVisible: true,
 }
 
 window.onload = function() {
@@ -37,9 +36,10 @@ window.onload = function() {
 
 function texturesLoaded(app) {
     let ws = new WebSocket(config.wsURL)
-    bindLobbyButtonFunctions(ws);
     let gameState = initGameState();
-    let sync = newStateSync(gameState, newAppState(app), null);
+    let appState = newAppState(app);
+    let sync = newStateSync(gameState, appState, null);
+    bindControls(appState, ws);
     let messageHandler = newMessageHandler(ws, sync);
     let interactionHandler = newInteractionHandler(sync, gameState);
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
@@ -124,14 +124,13 @@ function newAppState(app) {
         app.stage.addChild(container);
     }
 
-    if (config.areaBoundsVisible === true) {
-        let debugRects = new PIXI.Graphics();
-        debugRects.lineStyle(3, 0xFF0000);
-        for (rect of [handRect, playerDiscardRect, deckRect, playerArboretumRect]) {
-            debugRects.drawRect(rect.x, rect.y, rect.width, rect.height);
-        }
-        app.stage.addChild(debugRects);
+    let debugRects = new PIXI.Graphics();
+    debugRects.lineStyle(3, 0xFF0000);
+    for (rect of [handRect, playerDiscardRect, deckRect, playerArboretumRect]) {
+        debugRects.drawRect(rect.x, rect.y, rect.width, rect.height);
     }
+    debugRects.visible = document.getElementById("debugCheckbox").checked
+    app.stage.addChild(debugRects);
 
     return {
         app: app,
@@ -139,6 +138,7 @@ function newAppState(app) {
         playerDiscard: playerDiscardContainer,
         deckContainer: deckContainer,
         playerArboretum: playerArboretum,
+        debugRects: debugRects,
         resizeCardsInHand: function() {
             let numCards = handContainer.children.length;
             let margin = 10;
@@ -236,6 +236,14 @@ function newMessageHandler(ws, stateSync) {
     }
     ws.onmessage = msg => handler.handle(msg);
     return handler
+}
+
+function bindControls(appState, ws) {
+    debugCheckbox = document.getElementById("debugCheckbox");
+    debugCheckbox.onchange = function() {
+        appState.debugRects.visible = debugCheckbox.checked;
+    }
+    bindLobbyButtonFunctions(ws);
 }
 
 function bindLobbyButtonFunctions(ws) {
