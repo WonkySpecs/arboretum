@@ -206,7 +206,7 @@ class Game:
         raise ValueError("Number of players must be 2, 3, or 4")
 
     def is_valid_draw_target(self, target_discard: Optional[int]) -> Tuple[bool, Optional[str]]:
-        if target_discard == None:
+        if not target_discard:
             if self.deck:
                 return True, None
             else:

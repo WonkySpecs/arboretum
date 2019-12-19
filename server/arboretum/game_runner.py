@@ -14,7 +14,7 @@ class GameRunner:
 
     def __init__(self, clients):
         self.game = Game(len(clients))
-        self.player_clients = { p: c for (p, c) in zip(self.game.players, clients) }
+        self.player_clients = {p: c for (p, c) in zip(self.game.players, clients)}
 
     async def run(self):
         for p, c in self.player_clients.items():
@@ -48,16 +48,16 @@ class GameRunner:
                 self.game.current_player.hand.append(card)
                 await self.broadcast(DrawMessage(card=card), [self._cur_client])
                 await self.broadcast(CardTakenMessage(
-                    player_num=self.game.current_player, target_discard=target_discard))
+                    player_num=self.game.current_player.num, target_discard=target_discard))
 
     async def handle_move(self):
         valid = False
         while not valid:
-            play_card, play_pos, discard_card, discard_pile = \
+            play_card, play_pos, discard_card = \
                 await GameRunner.next_input(self._cur_client, "play")
             valid, message = self.game.current_player.is_valid_play(
                 play_card,
-                pos,
+                play_pos,
                 discard_card)
 
             if not valid:
@@ -66,8 +66,7 @@ class GameRunner:
                 self.game.current_player.play(
                     play_card,
                     play_pos,
-                    discard_card,
-                    discard_pile)
+                    discard_card)
                 await self.broadcast(PlayMessage(
                     player_num=self.game.current_player.num,
                     card=play_card,
@@ -75,8 +74,7 @@ class GameRunner:
 
                 await self.broadcast(DiscardMessage(
                     player_num=self.game.current_player.num,
-                    card=discard_card,
-                    pile=discard_pile))
+                    card=discard_card))
 
     @property
     def _cur_client(self):
@@ -98,9 +96,9 @@ class GameRunner:
                 return next(client.gen_draw)
         elif target_type == "play":
             if client.is_async:
-                return await client.gen_play.__anext__()
+                return await client.gen_move.__anext__()
             else:
-                return next(client.gen_play)
+                return next(client.gen_move)
         raise RuntimeException(f"Unknown target_type {target_type}")
 
     async def broadcast(self, message, clients=None):

@@ -12,7 +12,7 @@ function texturesLoaded(app) {
     let sync = newStateSync(gameState, appState, null);
     bindControls(appState, ws);
     let messageHandler = newMessageHandler(ws, sync);
-    let interactionHandler = newInteractionHandler(sync, gameState);
+    let interactionHandler = newInteractionHandler(sync, gameState, messageHandler);
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let spriteBuilder = newSpriteBuilder(textures, interactionHandler);
     sync.setBuilder(spriteBuilder);
@@ -49,7 +49,7 @@ function newSpriteBuilder(textures, interactionHandler) {
         },
         buildDeck: function(numCards) {
             let deckSprite = PIXI.Sprite.from(textures.deck);
-            deckSprite.on('pointerdown', _ => interactionHandler.deckClicked());
+            deckSprite.on('pointerdown', _ => interactionHandler.drawTargetClicked(drawTarget.DECK));
             deckSprite.interactive = true;
             let text = new PIXI.Text(numCards.toString(), new PIXI.TextStyle( { fill: "blue" } ));
             text.x = 2;
@@ -63,14 +63,17 @@ function newSpriteBuilder(textures, interactionHandler) {
 function initGameState() {
     return {
         start: function(playerNum, numPlayers, cardsInDeck) {
+            console.log("Game started, you are player " + playerNum + " of " + numPlayers)
             this.myNum = playerNum;
             this.currentPlayer = 0;
-            this.phase = gamePhase.firstDraw;
+            this.phase = gamePhase.FIRST_DRAW;
             this.hand = [];
             this.discards = [...Array(numPlayers)].map(_ => []);
             // TODO: Arboretum data structure. Object? 2D array?
             this.arboretums = [...Array(numPlayers)].map(_ => []);
-        }
+        },
+        isMyTurn: () => myNum == currentPlayer,
+        isDrawPhase: () => phase == gamePhase.FIRST_DRAW || phase == gamePhase.SECOND_DRAW,
     }
 }
 
@@ -160,14 +163,19 @@ function newStateSync(gameState, appState) {
     };
 }
 
-function newInteractionHandler(stateSync, gameState) {
+function newInteractionHandler(stateSync, gameState, messageHandler) {
     return {
         cardClicked: function(card) {
             console.log("Clicked " + card.val + " of " + card.suit);
             stateSync.removeCard(card);
         },
-        deckClicked: function() {
-            stateSync.cardDrawn(123, "oak");
+        drawTargetClicked: function(target) {
+            if (gameState.isMyTurn && gameState.isDrawPhase) {
+                messageHandler.sendDrawMessage(target)
+                console.log("Sent draw message");
+            } else {
+                console.log("Not your turn");
+            }
         },
     };
 }
@@ -182,15 +190,14 @@ function newMessageHandler(ws, stateSync) {
             if ( msg.message_type === "game_starting" ) {
                 console.log("Sending ready");
                 ws.send(JSON.stringify({"message_type": "ready"}));
-            } else if (msg.message_type === "draw" ) {
-                stateSync.cardDrawn(
-                    msg.card_value,
-                    config.niceSuitNames[msg.card_suit]);
             } else if (msg.message_type === "game_start" ) {
                 stateSync.newGame(
                     msg.player_num, msg.num_players, msg.cards_in_deck);
                 player_num = msg.player_num;
-
+            } else if (msg.message_type === "draw" ) {
+                stateSync.cardDrawn(
+                    msg.card_value,
+                    config.niceSuitNames[msg.card_suit]);
             } else {
                 console.log("Message with unknown type " + msg.message_type);
             }
@@ -208,6 +215,9 @@ function newMessageHandler(ws, stateSync) {
                 "Message: ");
             document.getElementById("gameLog").appendChild(log);
         },
+        sendDrawMessage: function(drawTarget) {
+            ws.send(buildMessage.draw(drawTarget))
+        }
     }
     ws.onmessage = msg => handler.handle(msg);
     return handler

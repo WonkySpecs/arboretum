@@ -21,7 +21,7 @@ class Message:
         self.player_num = player_num
 
     def serialize(self):
-        d = {k: v for k, v in self.__dict__.items() if v}
+        d = {k: v for k, v in self.__dict__.items() if v is not None}
         if "card" in d:
             d["card_suit"] = d["card"].suit.value
             d["card_value"] = d["card"].value
@@ -44,12 +44,11 @@ class DrawMessage(Message):
 
 
 class DiscardMessage(Message):
-    def __init__(self, card: Card, player_num: int, pile: int):
+    def __init__(self, card: Card, player_num: int):
         super().__init__(
             MessageType.DISCARD,
             player_num=player_num)
         self.card = card
-        self.pile = pile
 
 
 class PlayMessage(Message):
@@ -63,6 +62,7 @@ class CardTakenMessage(Message):
     def __init__(self, player_num: int, target_discard: Optional[int] = None):
         super().__init__(MessageType.CARD_TAKEN, player_num=player_num)
         self.target_discard = target_discard
+
 
 class GameStartMessage(Message):
     def __init__(self, player_num: int, num_players: int, cards_in_deck: int):

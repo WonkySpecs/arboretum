@@ -12,13 +12,13 @@ class WSClient(AsyncBaseClient):
 
     async def next_message(self, target_msg_type: str):
         async for message in self.ws:
-            d = json.load(message)
+            d = json.loads(message)
             if d['message_type'] != target_msg_type:
                 continue
 
             if d['message_type'] == 'draw':
                 return d.get('draw_target')
-            elif d['message_type'] == 'play':
+            elif d['message_type'] == 'move':
                 return (
                     Card(Suit.from_str(d['play_suit']), int(d['play_val'])),
                     Pos(x=int(d['play_x']), y=int(d['play_y'])),
