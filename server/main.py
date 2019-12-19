@@ -16,6 +16,7 @@ next_user_num = 0
 def new_game(sockets):
     return GameRunner([WSClient(ws) for ws in sockets])
 
+
 async def connect(ws, _):
     in_lobby = None
     p_num = None

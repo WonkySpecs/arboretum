@@ -1,8 +1,8 @@
 import json
-import asyncio
+import asyncio  # type: ignore
 
 from arboretum.clients.base_client import AsyncBaseClient
-from arboretum.game.data import Card, Pos
+from arboretum.game.data import Card, Pos, Suit
 
 
 class WSClient(AsyncBaseClient):
@@ -12,7 +12,7 @@ class WSClient(AsyncBaseClient):
 
     async def next_message(self, target_msg_type: str):
         async for message in self.ws:
-            d = json.load(msg)
+            d = json.load(message)
             if d['message_type'] != target_msg_type:
                 continue
 
@@ -25,7 +25,7 @@ class WSClient(AsyncBaseClient):
                     Card(Suit.from_str(d['discard_suit']), int(d['discard_val'])),
                     d['discard_pile'])
             raise RuntimeError(
-                f"Unknown message type '{d['msg_type']}'. Message {msg}")
+                f"Unknown message type '{d['msg_type']}'. Message {message}")
 
     async def draw_generator(self):
         while True:

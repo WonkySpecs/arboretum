@@ -21,15 +21,15 @@ class Message:
         self.player_num = player_num
 
     def serialize(self):
-        d = { k: v for k, v in self.__dict__.items() if v }
+        d = {k: v for k, v in self.__dict__.items() if v}
         if "card" in d:
-            d["card_suit"] = self.card.suit.value
-            d["card_value"] = self.card.value
+            d["card_suit"] = d["card"].suit.value
+            d["card_value"] = d["card"].value
             del d["card"]
 
         if "pos" in d:
-            d["x"] = d.x
-            d["y"] = d.y
+            d["x"] = d["pos"].x
+            d["y"] = d["pos"].y
             del d["pos"]
 
         d["message_type"] = d["msg_type"].value
@@ -39,7 +39,7 @@ class Message:
 
 class DrawMessage(Message):
     def __init__(self, card: Card):
-        super().__init__(MessageType.DRAW, None)
+        super().__init__(MessageType.DRAW, -1)
         self.card = card
 
 

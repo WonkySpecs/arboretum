@@ -1,6 +1,6 @@
 import random
 from collections import namedtuple
-from enum import Enum, auto
+from enum import Enum
 from typing import List, Dict, Tuple, Optional, Iterator
 
 Pos = namedtuple("Pos", ["x", "y"])
