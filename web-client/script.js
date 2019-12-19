@@ -1,32 +1,3 @@
-config = {
-    canvas: { width: 1080, height: 720 },
-    textures: [
-        "maple",
-        "cassia",
-        "cherryBlossom",
-        "spruce",
-        "jacaranda",
-        "oak",
-        "dogwood",
-        "royalPoinciana",
-        "willow",
-        "tulipPoplar",
-        "deck" ],
-    niceSuitNames: {
-        "Maple": "maple",
-        "Cassia": "cassia",
-        "Cherry Blossom": "cherryBlossom",
-        "Spruce": "spruce",
-        "Jacaranda": "jacaranda",
-        "Oak": "oak",
-        "Dogwood": "dogwood",
-        "Royal Poinciana": "royalPoinciana",
-        "Willow": "willow",
-        "Tulip Poplar": "tulipPoplar" },
-    cardSpriteWidth: 40,
-    wsURL: "ws://0.0.0.0:5050",
-}
-
 window.onload = function() {
     let app = new PIXI.Application({width: config.canvas.width, height: config.canvas.height, antialias: true});
     PIXI.loader
@@ -94,6 +65,7 @@ function initGameState() {
         start: function(playerNum, numPlayers, cardsInDeck) {
             this.myNum = playerNum;
             this.currentPlayer = 0;
+            this.phase = gamePhase.firstDraw;
             this.hand = [];
             this.discards = [...Array(numPlayers)].map(_ => []);
             // TODO: Arboretum data structure. Object? 2D array?
