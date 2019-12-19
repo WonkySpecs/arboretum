@@ -234,7 +234,7 @@ function newMessageHandler(ws, stateSync) {
                     if ( i === 0 ) { return acc + s; }
                     else { return acc + ", " + s; }},
                 "Message: ");
-            document.getElementById("messageLog").appendChild(log);
+            document.getElementById("gameLog").appendChild(log);
         },
     }
     ws.onmessage = msg => handler.handle(msg);
