@@ -71,7 +71,7 @@ function newSpriteBuilder(textures, interactionHandler) {
         },
         buildDeck: function(numCards) {
             let deckSprite = PIXI.Sprite.from(textures.deck);
-            deckSprite.on('pointerdown', _ => interactionHandler.drawTargetClicked(drawTarget.DECK));
+            deckSprite.on('pointerdown', _ => interactionHandler.deckClicked());
             deckSprite.interactive = true;
             let text = new PIXI.Text(numCards.toString(), new PIXI.TextStyle( { fill: "blue" } ));
             text.x = 2;
@@ -94,8 +94,24 @@ function initGameState() {
             // TODO: Arboretum data structure. Object? 2D array?
             this.arboretums = [...Array(numPlayers)].map(_ => []);
         },
-        isMyTurn: () => myNum == currentPlayer,
-        isDrawPhase: () => phase == gamePhase.FIRST_DRAW || phase == gamePhase.SECOND_DRAW,
+        nextPhase: function () {
+            return this.phase = gamePhase.next(this.phase);
+        },
+        isMyTurn: function() {
+            return this.myNum == this.currentPlayer;
+        },
+        isDrawPhase: function() {
+            return this.phase == gamePhase.FIRST_DRAW || this.phase == gamePhase.SECOND_DRAW;
+        },
+        isMovePhase: function() {
+            return this.phase == gamePhase.MOVE;
+        },
+        isInHand: function(card) {
+            return this.hand.includes(card);
+        },
+        drawingInitialHand: function() {
+            return this.hand.length < 7;
+        }
     }
 }
 
@@ -165,7 +181,13 @@ function newStateSync(gameState, appState) {
             appState.app.stage.addChild(tempInfoTextThing);
         },
         cardDrawn: function(val, suit) {
+            if (!gameState.isDrawPhase) {
+                throw "Attempted to draw card when it was not a draw phase";
+            }
             let card = builder.buildCard(val, suit);
+            if (!gameState.drawingInitialHand()) {
+                gameState.nextPhase();
+            }
             gameState.hand.push(card);
             appState.handContainer.addChild(card.sprite);
             appState.resizeCardsInHand(appState);
@@ -186,17 +208,22 @@ function newStateSync(gameState, appState) {
 }
 
 function newInteractionHandler(stateSync, gameState, messageHandler) {
+    let _clickedCardCache = null;
     return {
         cardClicked: function(card) {
-            console.log("Clicked " + card.val + " of " + card.suit);
-            stateSync.removeCard(card);
+            if (!gameState.isMyTurn()) {
+                return
+            }
+            if (gameState.isDrawPhase()) { // TODO: and card is on top of discard)
+                // Draw from appropriate discard
+            } else if (gameState.isMovePhase() && gameState.isInHand(card)) {
+                console.log("Ready to place/discard ", card);
+                _clickedCardCache = card;
+            }
         },
-        drawTargetClicked: function(target) {
-            if (gameState.isMyTurn && gameState.isDrawPhase) {
-                messageHandler.sendDrawMessage(target)
-                console.log("Sent draw message");
-            } else {
-                console.log("Not your turn");
+        deckClicked: function() {
+            if (gameState.isMyTurn() && gameState.isDrawPhase()) {
+                messageHandler.sendDrawMessage(null)
             }
         },
     };

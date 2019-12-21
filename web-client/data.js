@@ -28,13 +28,19 @@ const config = {
 }
 
 const gamePhase = {
-    FIRST_DRAW: 0,
-    SECOND_DRAW: 1,
-    MOVE: 2,
-}
-
-const drawTarget = {
-    DECK: undefined,
+    FIRST_DRAW: "Draw 1",
+    SECOND_DRAW: "Draw 2",
+    MOVE: "Move",
+    next: function(phase) {
+        switch (phase) {
+            case this.FIRST_DRAW:
+                return this.SECOND_DRAW;
+            case this.SECOND_DRAW:
+                return this.MOVE;
+            case this.MOVE:
+                return this.FIRST_DRAW;
+        }
+    }
 }
 
 const buildMessage = {
