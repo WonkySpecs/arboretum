@@ -16,6 +16,8 @@ function texturesLoaded(app) {
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let spriteBuilder = newSpriteBuilder(textures, interactionHandler);
     sync.setBuilder(spriteBuilder);
+    // Temp
+    appState.playerDiscard.addChild(spriteBuilder.buildDiscard());
 
     document.getElementById("gameCanvas").appendChild(app.view);
 }
@@ -53,6 +55,12 @@ let gameLog = {
     },
 }
 
+let info = {
+    set: function(msg) {
+        document.getElementById("gameInfo").innerHTML = msg;
+    }
+}
+
 function newSpriteBuilder(textures, interactionHandler) {
     return {
         buildCard: function(value, suit) {
@@ -79,6 +87,14 @@ function newSpriteBuilder(textures, interactionHandler) {
             deckSprite.addChild(text);
             return deckSprite;
         },
+        buildDiscard: function() {
+            let rect = new PIXI.Graphics();
+            rect.beginFill(0x222222);
+            rect.drawRect(10, 10, config.cardSpriteWidth - 2, 62) // Magic = sprite height - 2. TODO: Sort it
+            rect.interactive = true;
+            rect.on('pointerdown', _ => interactionHandler.discardClicked());
+            return rect;
+        }
     };
 }
 
@@ -243,6 +259,7 @@ function newStateSync(gameState, appState) {
 
 function newInteractionHandler(stateSync, gameState, messageHandler) {
     let _selectedCard = null;
+    let _moveCache = [null, null];  // [[cardToPlay, [x, y]], cardToDiscard]. This is going to lead to bugs
     return {
         cardClicked: function(card) {
             if (!gameState.isMyTurn()) {
@@ -264,6 +281,12 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
                 messageHandler.sendDrawMessage(null)
             }
         },
+        discardClicked: function() {
+            if (_selectedCard != null) {
+                _moveCache[1] = _selectedCard;
+                info.set("Discarding " + _selectedCard.val + " of " + _selectedCard.suit);
+            }
+        }
     };
 }
 
