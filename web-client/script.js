@@ -93,6 +93,7 @@ function initGameState() {
             this.discards = [...Array(numPlayers)].map(_ => []);
             // TODO: Arboretum data structure. Object? 2D array?
             this.arboretums = [...Array(numPlayers)].map(_ => []);
+            this.cardsInDeck = cardsInDeck;
         },
         nextPhase: function () {
             this.phase = gamePhase.next(this.phase);
@@ -174,6 +175,10 @@ function newAppState(app) {
                 let child = handContainer.children[i];
                 child.x = i * widthPerCard + margin;
             }
+        },
+        decrementCardsInDeck: function() {
+            let numCards = deckContainer.children[0].children[0];
+            numCards.text = (parseInt(numCards.text) - 1).toString();
         }
     }
 }
@@ -205,6 +210,10 @@ function newStateSync(gameState, appState) {
             appState.handContainer.addChild(card.sprite);
             appState.resizeCardsInHand(appState);
         },
+        cardTaken: function(foo) { // TODO: Handle draw targets, for now assuming deck
+            gameState.cardsInDeck -= 1;
+            appState.decrementCardsInDeck();
+        },
         playCard: function(playerNum, val, suit, x, y) {
             if (gameState.myNum === playerNum) {
                 _playMyCard(val, suit, x, y);
@@ -233,17 +242,21 @@ function newStateSync(gameState, appState) {
 }
 
 function newInteractionHandler(stateSync, gameState, messageHandler) {
-    let _clickedCardCache = null;
+    let _selectedCard = null;
     return {
         cardClicked: function(card) {
             if (!gameState.isMyTurn()) {
                 return
             }
+            if (_selectedCard != null) {
+                _selectedCard = null;
+            }
+
             if (gameState.isDrawPhase()) { // TODO: and card is on top of discard)
                 // Draw from appropriate discard
             } else if (gameState.isMovePhase() && gameState.isInHand(card)) {
                 console.log("Ready to place/discard ", card);
-                _clickedCardCache = card;
+                _selectedCard = card;
             }
         },
         deckClicked: function() {
@@ -276,7 +289,7 @@ function newMessageHandler(ws, stateSync) {
                     break;
 
                 case "taken":
-                    console.log("Handle card taken messages");
+                    stateSync.cardTaken(123);   // TODO: draw target
                     break;
 
                 case "played":
