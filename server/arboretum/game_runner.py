@@ -1,10 +1,9 @@
-from typing import Tuple, Optional, Dict
+from typing import Dict
 import asyncio
 
 from arboretum.clients.base_client import BaseClient
 from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage, GameStartMessage
-from arboretum.clients.random_robot import RandomRobot
-from arboretum.game.data import Game, Card, Suit, Pos, Player
+from arboretum.game.data import Game, Player
 from arboretum.game.scoring import score_game
 
 
