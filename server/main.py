@@ -55,7 +55,7 @@ async def connect(ws, _):
             else:
                 print(f"User {user_num} started game {in_lobby} with {in_lobby_count} players")
                 game = new_game(lobbies[in_lobby])
-                await asyncio.gather(*[client.send(json.dumps({"message_type": "game_starting"}))
+                await asyncio.gather(*[client.send(json.dumps({"message_type": "ready_check"}))
                                        for client in lobbies[in_lobby] if client != ws])
                 break
 

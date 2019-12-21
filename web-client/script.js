@@ -95,8 +95,9 @@ function initGameState() {
             this.arboretums = [...Array(numPlayers)].map(_ => []);
         },
         nextPhase: function () {
-            return this.phase = gamePhase.next(this.phase);
+            this.phase = gamePhase.next(this.phase);
         },
+
         isMyTurn: function() {
             return this.myNum == this.currentPlayer;
         },
@@ -111,6 +112,17 @@ function initGameState() {
         },
         drawingInitialHand: function() {
             return this.hand.length < 7;
+        },
+        retrieveCard: function(val, suit) {
+            toSearch = [this.hand];
+            for (searchTarget of toSearch) {
+                for (card of searchTarget) {
+                    if (card.val === val && card.suit === suit) {
+                        return card;
+                    }
+                }
+            }
+            throw "Expected to get " + val + " of " + suit + ", but couldn't find it";
         }
     }
 }
@@ -152,6 +164,7 @@ function newAppState(app) {
         playerDiscard: playerDiscardContainer,
         deckContainer: deckContainer,
         playerArboretum: playerArboretum,
+        opponentArboretums: null,
         debugRects: debugRects,
         resizeCardsInHand: function() {
             let numCards = handContainer.children.length;
@@ -192,14 +205,26 @@ function newStateSync(gameState, appState) {
             appState.handContainer.addChild(card.sprite);
             appState.resizeCardsInHand(appState);
         },
-        cardPlayed: function(val, suit) {
-            let card = builder.buildCard(val, suit);
+        playCard: function(playerNum, val, suit, x, y) {
+            if (gameState.myNum === playerNum) {
+                _playMyCard(val, suit, x, y);
+            } else {
+                let opponentNum = playerNum < gameState.myNum ? playerNum : playerNum - 1;
+                _playOpponentCard(opponentNum, val, suit, x, y);
+            }
+            gameLog.append("Player " + playerNum + " played " + val + " of " + suit + " at (" + x + ", " + y + ")");
+        },
+        _playMyCard: function(val, suit, x, y) {
+            // Remove card from hand, add it to arboretum
+            let card = gameState.retrieveCard(val, suit);
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
             appState.handContainer.removeChild(card.sprite);
             resizeCardsInHand(appState);
+            appState.playerArboretum.addChild(card.sprite);
         },
-        removeCard: function(card) {
-            card.sprite.parent.removeChild(card.sprite);
+        _playOpponentCard: function(opponentNum, val, suit, x, y) {
+            let card = builder.buildCard(val, suit);
+            appState.opponentArboretums[opponentNum].addChild(card.sprite);
         },
         setBuilder: function(b) {
             builder = b;
@@ -230,25 +255,37 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
 }
 
 function newMessageHandler(ws, stateSync) {
-    let player_num = null;
     handler = {
         handle: function(msg) {
-            console.log(msg);
             msg = JSON.parse(msg.data)
             gameLog.append(msg);
-            if ( msg.message_type === "game_starting" ) {
-                console.log("Sending ready");
-                ws.send(JSON.stringify({"message_type": "ready"}));
-            } else if (msg.message_type === "game_start" ) {
-                stateSync.newGame(
-                    msg.player_num, msg.num_players, msg.cards_in_deck);
-                player_num = msg.player_num;
-            } else if (msg.message_type === "draw" ) {
-                stateSync.cardDrawn(
-                    msg.card_value,
-                    config.niceSuitNames[msg.card_suit]);
-            } else {
-                console.log("Message with unknown type " + msg.message_type);
+            switch (msg.message_type) {
+                case "ready_check":
+                    ws.send(JSON.stringify({"message_type": "ready"}));
+                    break;
+
+                case "game_start":
+                    stateSync.newGame(
+                        msg.player_num, msg.num_players, msg.cards_in_deck);
+                    break;
+
+                case "draw":
+                    stateSync.cardDrawn(
+                        msg.card_value,
+                        config.niceSuitNames[msg.card_suit]);
+                    break;
+
+                case "taken":
+                    console.log("Handle card taken messages");
+                    break;
+
+                case "played":
+                    stateSync.playCard(
+                        msg.player_num, msg.card_val, msg.card_suit, msg.x, msg.y);
+                    break;
+
+                default:
+                    console.log("Message with unknown type " + msg.message_type);
             }
         },
         sendDrawMessage: function(drawTarget) {
