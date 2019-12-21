@@ -31,6 +31,28 @@ function splitSpriteSheet(sheet, app) {
     return textures;
 }
 
+let gameLog = {
+    append: function(msg) {
+        let text = "";
+        if (typeof msg === "string") {
+            text = msg;
+        } else if (typeof msg === "object") {
+            let kvs = [];
+            Object.keys(msg).forEach((k, _) => kvs.push(k + ": " + msg[k]));
+            text = kvs.reduce(
+                function(acc, s, i) {
+                    if ( i === 0 ) { return acc + s; }
+                    else { return acc + ", " + s; }},
+                "Message: ");
+        } else {
+            throw "Cannot append message to log, expected object or string, got " + typeof msg;
+        }
+        let log = document.createElement("p");
+        log.innerHTML = text;
+        document.getElementById("gameLog").appendChild(log);
+    },
+}
+
 function newSpriteBuilder(textures, interactionHandler) {
     return {
         buildCard: function(value, suit) {
@@ -63,7 +85,7 @@ function newSpriteBuilder(textures, interactionHandler) {
 function initGameState() {
     return {
         start: function(playerNum, numPlayers, cardsInDeck) {
-            console.log("Game started, you are player " + playerNum + " of " + numPlayers)
+            gameLog.append("Game started, you are player " + playerNum + " of " + numPlayers)
             this.myNum = playerNum;
             this.currentPlayer = 0;
             this.phase = gamePhase.FIRST_DRAW;
@@ -186,7 +208,7 @@ function newMessageHandler(ws, stateSync) {
         handle: function(msg) {
             console.log(msg);
             msg = JSON.parse(msg.data)
-            this._log(msg);
+            gameLog.append(msg);
             if ( msg.message_type === "game_starting" ) {
                 console.log("Sending ready");
                 ws.send(JSON.stringify({"message_type": "ready"}));
@@ -201,19 +223,6 @@ function newMessageHandler(ws, stateSync) {
             } else {
                 console.log("Message with unknown type " + msg.message_type);
             }
-        },
-        _log: function(msg) {
-            // Write message to 'log' element, as a game history/info for player.
-            // TODO: Better message format. Do a layout function per message type.
-            let kvs = [];
-            Object.keys(msg).forEach((k, _) => kvs.push(k + ": " + msg[k]));
-            let log = document.createElement("p");
-            log.innerHTML = kvs.reduce(
-                function(acc, s, i) {
-                    if ( i === 0 ) { return acc + s; }
-                    else { return acc + ", " + s; }},
-                "Message: ");
-            document.getElementById("gameLog").appendChild(log);
         },
         sendDrawMessage: function(drawTarget) {
             ws.send(buildMessage.draw(drawTarget))
