@@ -16,8 +16,6 @@ function texturesLoaded(app) {
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let spriteBuilder = newSpriteBuilder(textures, interactionHandler);
     sync.setBuilder(spriteBuilder);
-    // Temp
-    appState.playerDiscard.addChild(spriteBuilder.buildDiscard());
 
     document.getElementById("gameCanvas").appendChild(app.view);
 }
@@ -56,8 +54,8 @@ let gameLog = {
 }
 
 let info = {
-    set: function(msg) {
-        document.getElementById("gameInfo").innerHTML = msg;
+    setText: function(msg) {
+        document.getElementById("gameInfoText").textContent = msg;
     }
 }
 
@@ -87,12 +85,20 @@ function newSpriteBuilder(textures, interactionHandler) {
             deckSprite.addChild(text);
             return deckSprite;
         },
-        buildDiscard: function() {
+        buildMoveTarget: function(targetType, x, y) {
+            // TODO: Make these more noticeable - fading, glowing, ?
             let rect = new PIXI.Graphics();
-            rect.beginFill(0x222222);
-            rect.drawRect(10, 10, config.cardSpriteWidth - 2, 62) // Magic = sprite height - 2. TODO: Sort it
+            rect.lineStyle(2, 0x0033FF, 1);
+            rect.beginFill(0x0033CC, 0.1);
+            rect.drawRoundedRect(8, 8, config.cardSpriteWidth, 64, 6) // Magic = about card sized TODO: Sort it
             rect.interactive = true;
-            rect.on('pointerdown', _ => interactionHandler.discardClicked());
+            if (targetType === "discard") {
+                rect.on('pointerdown', _ => interactionHandler.discardClicked());
+            } else if (target === "play") {
+                rect.on('pointerdown', _ => interactionHandler.playTargetClicked(x, y));
+            } else {
+                throw "Unknown targetType for move target '" + targetType + "'";
+            }
             return rect;
         }
     };
@@ -251,6 +257,18 @@ function newStateSync(gameState, appState) {
             let card = builder.buildCard(val, suit);
             appState.opponentArboretums[opponentNum].addChild(card.sprite);
         },
+        createMoveTargets: function() {
+            let discard = builder.buildMoveTarget("discard");
+            appState.playerDiscard.addChild(discard);
+            appState.moveTargets = [discard];
+            // TODO: From game state, work out valid play positions and create a "play" target for each
+        },
+        removeMoveTargets: function() {
+            for (target of appState.moveTargets) {
+                target.parent.removeChild(target);
+            }
+            appState.moveTargets = [];
+        },
         setBuilder: function(b) {
             builder = b;
         },
@@ -265,15 +283,12 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             if (!gameState.isMyTurn()) {
                 return
             }
-            if (_selectedCard != null) {
-                _selectedCard = null;
-            }
 
             if (gameState.isDrawPhase()) { // TODO: and card is on top of discard)
                 // Draw from appropriate discard
             } else if (gameState.isMovePhase() && gameState.isInHand(card)) {
-                console.log("Ready to place/discard ", card);
                 _selectedCard = card;
+                stateSync.createMoveTargets();
             }
         },
         deckClicked: function() {
@@ -282,10 +297,26 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             }
         },
         discardClicked: function() {
-            if (_selectedCard != null) {
-                _moveCache[1] = _selectedCard;
-                info.set("Discarding " + _selectedCard.val + " of " + _selectedCard.suit);
+            if (_selectedCard == null) {
+                console.log("The discard target existed when it shouldn't have");
+                return
             }
+
+            info.setText("Discarding " + _selectedCard.val + " of " + _selectedCard.suit);
+            _moveCache[1] = _selectedCard;
+            _selectedCard = null;
+            stateSync.removeMoveTargets();
+        },
+        playTargetClicked: function(x, y) {
+            if (_selectedCard == null) {
+                console.log("A play target existed when it shouldn't have");
+                return
+            }
+
+            info.setText("Playing " + _selectedCard.val + " of " + _selectedCard.suit + " at (" + x + ", " + y + ")");;
+            _moveCache[0] = [_selectedCard, [x, y]];
+            _selectedCard = null;
+            stateSync.removeMoveTargets();
         }
     };
 }
