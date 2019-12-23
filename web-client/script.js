@@ -94,7 +94,7 @@ function newSpriteBuilder(textures, interactionHandler) {
             rect.interactive = true;
             if (targetType === "discard") {
                 rect.on('pointerdown', _ => interactionHandler.discardClicked());
-            } else if (target === "play") {
+            } else if (targetType === "play") {
                 rect.on('pointerdown', _ => interactionHandler.playTargetClicked(x, y));
             } else {
                 throw "Unknown targetType for move target '" + targetType + "'";
@@ -105,6 +105,12 @@ function newSpriteBuilder(textures, interactionHandler) {
 }
 
 function initGameState() {
+    let neighbours = function(strX, strY) {
+        let x = parseInt(strX);
+        let y = parseInt(strY);
+        return [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]
+            .map(([x, y]) => [x.toString(), y.toString()]);
+    }
     return {
         start: function(playerNum, numPlayers, cardsInDeck) {
             gameLog.append("Game started, you are player " + playerNum + " of " + numPlayers)
@@ -113,8 +119,7 @@ function initGameState() {
             this.phase = gamePhase.FIRST_DRAW;
             this.hand = [];
             this.discards = [...Array(numPlayers)].map(_ => []);
-            // TODO: Arboretum data structure. Object? 2D array?
-            this.arboretums = [...Array(numPlayers)].map(_ => []);
+            this.arboretums = [...Array(numPlayers)].map(_ => {});
             this.cardsInDeck = cardsInDeck;
         },
         nextPhase: function () {
@@ -146,7 +151,23 @@ function initGameState() {
                 }
             }
             throw "Expected to get " + val + " of " + suit + ", but couldn't find it";
-        }
+        },
+        validPlayPositions: function() {
+            if (this.arboretums[this.myNum] === undefined) {
+                return [["0", "0"]];
+            }
+            let cardsAt = Object.keys(this.arboretums[this.myNum])
+                .map(x => Object.keys(this.arboretums[this.myNum][x])
+                        .map(y => [x, y]))
+                .flat();
+            let possible = cardsAt
+                .map(([x, y]) => neighbours(x, y))
+                .flat();
+            for (pos of cardsAt) {
+                possible.delete(pos);
+            }
+            return possible;
+        },
     }
 }
 
@@ -261,7 +282,14 @@ function newStateSync(gameState, appState) {
             let discard = builder.buildMoveTarget("discard");
             appState.playerDiscard.addChild(discard);
             appState.moveTargets = [discard];
-            // TODO: From game state, work out valid play positions and create a "play" target for each
+            let playTargetPositions = gameState.validPlayPositions();
+            for ([x, y] of playTargetPositions) {
+                let target = builder.buildMoveTarget("play", x, y);
+                target.x = x * 100 + 200;   // TODO: Magic numbers for now, do proper layout in appState
+                target.y = y * 100 + 200;
+                appState.playerArboretum.addChild(target);
+                appState.moveTargets.push(target);
+            }
         },
         removeMoveTargets: function() {
             for (target of appState.moveTargets) {
