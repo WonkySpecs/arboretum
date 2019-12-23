@@ -22,8 +22,7 @@ class WSClient(AsyncBaseClient):
                 return (
                     Card(Suit.from_str(d['play_suit']), int(d['play_val'])),
                     Pos(x=int(d['play_x']), y=int(d['play_y'])),
-                    Card(Suit.from_str(d['discard_suit']), int(d['discard_val'])),
-                    d['discard_pile'])
+                    Card(Suit.from_str(d['discard_suit']), int(d['discard_val'])))
             raise RuntimeError(
                 f"Unknown message type '{d['msg_type']}'. Message {message}")
 
@@ -33,7 +32,7 @@ class WSClient(AsyncBaseClient):
 
     async def move_generator(self):
         while True:
-            yield await self.next_message('draw')
+            yield await self.next_message('move')
 
     async def receive(self, msg):
         await self.ws.send(msg.serialize())

@@ -24,7 +24,7 @@ class Message:
         d = {k: v for k, v in self.__dict__.items() if v is not None}
         if "card" in d:
             d["card_suit"] = d["card"].suit.value
-            d["card_value"] = d["card"].value
+            d["card_val"] = d["card"].value
             del d["card"]
 
         if "pos" in d:

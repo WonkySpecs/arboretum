@@ -23,8 +23,8 @@ function texturesLoaded(app) {
 function splitSpriteSheet(sheet, app) {
     let cardHeight = sheet.height;
     let textures = {};
-    for ( let i = 0; i < config.textures.length; i++ ) {
-        textures[config.textures[i]] = new PIXI.Texture(
+    for ( let i = 0; i < config.suitNames.length; i++ ) {
+        textures[config.suitNames[i]] = new PIXI.Texture(
             sheet,
             new PIXI.Rectangle(i * config.cardSpriteWidth, 0, config.cardSpriteWidth, cardHeight));
     }
@@ -259,10 +259,10 @@ function newStateSync(gameState, appState) {
         },
         playCard: function(playerNum, val, suit, x, y) {
             if (gameState.myNum === playerNum) {
-                _playMyCard(val, suit, x, y);
+                this._playMyCard(val, suit, x, y);
             } else {
                 let opponentNum = playerNum < gameState.myNum ? playerNum : playerNum - 1;
-                _playOpponentCard(opponentNum, val, suit, x, y);
+                this._playOpponentCard(opponentNum, val, suit, x, y);
             }
             gameLog.append("Player " + playerNum + " played " + val + " of " + suit + " at (" + x + ", " + y + ")");
         },
@@ -271,7 +271,7 @@ function newStateSync(gameState, appState) {
             let card = gameState.retrieveCard(val, suit);
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
             appState.handContainer.removeChild(card.sprite);
-            resizeCardsInHand(appState);
+            appState.resizeCardsInHand();
             appState.playerArboretum.addChild(card.sprite);
         },
         _playOpponentCard: function(opponentNum, val, suit, x, y) {
@@ -332,6 +332,9 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
 
             info.setText("Discarding " + _selectedCard.val + " of " + _selectedCard.suit);
             _moveCache[1] = _selectedCard;
+            if (_moveCache[0] != undefined) {
+                messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
+            }
             _selectedCard = null;
             stateSync.removeMoveTargets();
         },
@@ -343,6 +346,9 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
 
             info.setText("Playing " + _selectedCard.val + " of " + _selectedCard.suit + " at (" + x + ", " + y + ")");;
             _moveCache[0] = [_selectedCard, [x, y]];
+            if (_moveCache[1] != undefined) {
+                messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
+            }
             _selectedCard = null;
             stateSync.removeMoveTargets();
         }
@@ -366,8 +372,8 @@ function newMessageHandler(ws, stateSync) {
 
                 case "draw":
                     stateSync.cardDrawn(
-                        msg.card_value,
-                        config.niceSuitNames[msg.card_suit]);
+                        msg.card_val,
+                        msg.card_suit);
                     break;
 
                 case "taken":
@@ -385,6 +391,12 @@ function newMessageHandler(ws, stateSync) {
         },
         sendDrawMessage: function(drawTarget) {
             ws.send(buildMessage.draw(drawTarget))
+        },
+        sendMoveMessage: function(playCard, playPos, discardCard) {
+            ws.send(buildMessage.play(
+                playCard.val, playCard.suit,
+                playPos[0], playPos[1],
+                discardCard.val, discardCard.suit));
         }
     }
     ws.onmessage = msg => handler.handle(msg);
