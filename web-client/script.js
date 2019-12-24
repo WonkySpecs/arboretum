@@ -7,20 +7,20 @@ window.onload = function() {
 
 function texturesLoaded(app) {
     let ws = new WebSocket(config.wsURL)
+    let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture);
     let gameState = initGameState();
     let appState = newAppState(app);
     let sync = newStateSync(gameState, appState, null);
     bindControls(appState, ws);
     let messageHandler = newMessageHandler(ws, sync);
     let interactionHandler = newInteractionHandler(sync, gameState, messageHandler);
-    let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture, app);
     let spriteBuilder = newSpriteBuilder(textures, interactionHandler);
     sync.setBuilder(spriteBuilder);
 
     document.getElementById("gameCanvas").appendChild(app.view);
 }
 
-function splitSpriteSheet(sheet, app) {
+function splitSpriteSheet(sheet) {
     let cardHeight = sheet.height;
     let textures = {};
     for ( let i = 0; i < config.suitNames.length; i++ ) {
@@ -182,22 +182,24 @@ function newAppState(app) {
     let deckContainer = new PIXI.Container();
     let deckRect = new PIXI.Rectangle(config.canvas.width / 2 - 60 - 60, config.canvas.height - handRect.height - 80, 60, 80);
 
-    let playerArboretum = new PIXI.Container();
-    let playerArboretumRect = new PIXI.Rectangle(0, 0, config.canvas.width / 2, config.canvas.height - handRect.height - deckRect.height);
+    let playerArboretum = new Arboretum(
+        config.canvas.width / 2,
+        config.canvas.height - handRect.height - deckRect.height,
+        1.0);
 
     for ([container, rect] of [
             [handContainer, handRect],
             [playerDiscardContainer, playerDiscardRect],
-            [deckContainer, deckRect],
-            [playerArboretum, playerArboretumRect]] ) {
+            [deckContainer, deckRect]]) {
         container.x = rect.x;
         container.y = rect.y;
         app.stage.addChild(container);
     }
+    playerArboretum.addToStage(app.stage, 0, 0)
 
     let debugRects = new PIXI.Graphics();
     debugRects.lineStyle(3, 0xFF0000);
-    for (rect of [handRect, playerDiscardRect, deckRect, playerArboretumRect]) {
+    for (rect of [handRect, playerDiscardRect, deckRect]) {
         debugRects.drawRect(rect.x, rect.y, rect.width, rect.height);
     }
     app.stage.addChild(debugRects);
@@ -210,6 +212,27 @@ function newAppState(app) {
         playerArboretum: playerArboretum,
         opponentArboretums: null,
         debugRects: debugRects,
+        initOpponents: function(numOpponents) {
+            this.opponentArboretums = [];
+            this.opponentDiscards = [];
+            let discardWidth = 50;
+            let discardHeight = 70;
+            let arboretumWidth = config.canvas.width / 2 - discardWidth;
+            let arboretumHeight = config.canvas.height / numOpponents;
+            for (let i = 0; i < numOpponents; i++) {
+                let arboretum = new Arboretum(arboretumWidth, arboretumHeight, 0.5);  //TODO: Work out scale from width/height
+                arboretum.addToStage(
+                    app.stage,
+                    config.canvas.width / 2 + discardWidth,
+                    arboretumHeight * i);
+                this.opponentArboretums.push(arboretum);
+                let discard = new PIXI.Container()
+                discard.x = config.canvas.width / 2;
+                discard.y = arboretumHeight * i + arboretumHeight / 2 - discardHeight / 2;
+                app.stage.addChild(discard);
+                this.opponentDiscards.push(discard);
+            }
+        },
         resizeCardsInHand: function() {
             let numCards = handContainer.children.length;
             let margin = 10;
@@ -222,7 +245,17 @@ function newAppState(app) {
         decrementCardsInDeck: function() {
             let numCards = deckContainer.children[0].children[0];
             numCards.text = (parseInt(numCards.text) - 1).toString();
-        }
+        },
+        addToMyDiscard: function(sprite) {
+            playerDiscardContainer.addChild(sprite);
+            sprite.x = 8;
+            sprite.y = 8;
+        },
+        addToOpponentDiscard: function(sprite, opponentNum) {
+            this.opponentDiscards[opponentNum].addChild(sprite);
+            sprite.x = 8;
+            sprite.y = 8;
+        },
     }
 }
 
@@ -232,6 +265,7 @@ function newStateSync(gameState, appState) {
     return {
         newGame: function(yourNum, numPlayers, numCards) {
             gameState.start(yourNum, numPlayers, numCards);
+            appState.initOpponents(numPlayers - 1);
             let deck = builder.buildDeck(numCards);
             appState.deckContainer.addChild(deck);
             let tempInfoTextThing = new PIXI.Text(
@@ -272,11 +306,24 @@ function newStateSync(gameState, appState) {
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
             appState.handContainer.removeChild(card.sprite);
             appState.resizeCardsInHand();
-            appState.playerArboretum.addChild(card.sprite);
+            appState.playerArboretum.addSprite(card.sprite, x, y);
         },
         _playOpponentCard: function(opponentNum, val, suit, x, y) {
             let card = builder.buildCard(val, suit);
-            appState.opponentArboretums[opponentNum].addChild(card.sprite);
+            appState.opponentArboretums[opponentNum].addSprite(card.sprite, x, y);
+        },
+        discardCard: function(playerNum, val, suit) {
+            if (gameState.myNum === playerNum) {
+                let card = gameState.retrieveCard(val, suit);
+                gameState.hand.splice(gameState.hand.indexOf(card), 1);
+                appState.handContainer.removeChild(card.sprite);
+                appState.resizeCardsInHand();
+                appState.addToMyDiscard(card.sprite);
+            } else {
+                let card = builder.buildCard(val, suit);
+                let opponentNum = playerNum < gameState.myNum ? playerNum : playerNum - 1;
+                appState.addToOpponentDiscard(card.sprite, opponentNum);
+            }
         },
         createMoveTargets: function() {
             let discard = builder.buildMoveTarget("discard");
@@ -285,9 +332,7 @@ function newStateSync(gameState, appState) {
             let playTargetPositions = gameState.validPlayPositions();
             for ([x, y] of playTargetPositions) {
                 let target = builder.buildMoveTarget("play", x, y);
-                target.x = x * 100 + 200;   // TODO: Magic numbers for now, do proper layout in appState
-                target.y = y * 100 + 200;
-                appState.playerArboretum.addChild(target);
+                appState.playerArboretum.addSprite(target, x, y);
                 appState.moveTargets.push(target);
             }
         },
@@ -384,6 +429,11 @@ function newMessageHandler(ws, stateSync) {
                     stateSync.playCard(
                         msg.player_num, msg.card_val, msg.card_suit, msg.x, msg.y);
                     break;
+
+                case "discard":
+                stateSync.discardCard(
+                    msg.player_num, msg.card_val, msg.card_suit);
+
 
                 default:
                     console.log("Message with unknown type " + msg.message_type);
