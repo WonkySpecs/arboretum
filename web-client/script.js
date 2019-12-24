@@ -1,3 +1,5 @@
+let gameInfo = new GameInfo();
+
 window.onload = function() {
     let app = new PIXI.Application({width: config.canvas.width, height: config.canvas.height, antialias: true});
     PIXI.loader
@@ -54,36 +56,6 @@ let gameLog = {
     },
 }
 
-let setInfo = function() {
-    let title = document.getElementById("gameInfoTitle");
-    let info = document.getElementById("gameInfo");
-    return {
-        draw: function() {
-            title.textContent = "Draw phase";
-            return {
-                number: function(n) {
-                    if (n === 1) {
-                        info.textContent = "Select your first draw";
-                    } else {
-                        info.textContent = "Select your second draw";
-                    }
-                }
-            }
-        },
-        move: function() {
-            title.textContent = "Move phase";
-            return {
-                discard: function(val, suit) {
-                    info.textContent = "Discard: " + val + " of " + suit;
-                },
-                play: function(val, suit, x, y) {
-                    info.textContent = "Play: " + val + " of " + suit + " at (" + x + ", " + y + ")";
-                },
-            }
-        }
-    }
-}();
-
 function newSpriteBuilder(textures, interactionHandler) {
     return {
         buildCard: function(value, suit) {
@@ -115,10 +87,10 @@ function newSpriteBuilder(textures, interactionHandler) {
             let rect = new PIXI.Graphics();
             rect.lineStyle(2, 0x0033FF, 1);
             rect.beginFill(0x0033CC, 0.1);
-            rect.drawRoundedRect(8, 8, config.cardSpriteWidth, 64, 6) // Magic = about card sized TODO: Sort it
+            rect.drawRoundedRect(1, 1, config.cardSpriteWidth - 2, 62, 6) // Magic = about card sized TODO: Sort it
             rect.interactive = true;
             if (targetType === "discard") {
-                rect.on('pointerdown', _ => interactionHandler.discardClicked());
+                rect.on('pointerdown', _ => interactionHandler.discardTargetClicked());
             } else if (targetType === "play") {
                 rect.on('pointerdown', _ => interactionHandler.playTargetClicked(x, y));
             } else {
@@ -155,10 +127,13 @@ function initGameState() {
                 gameLog.append("Now player " + this.currentPlayer + "'s turn");
             }
 
-            if (this.isDrawPhase()) {
-                setInfo.draw();
+            let infoPNum = this.isMyTurn() ? undefined : this.currentPlayer;
+            if (this.phase === gamePhase.FIRST_DRAW) {
+                gameInfo.showDrawPhase(infoPNum);
+            } else if (this.phase === gamePhase.SECOND_DRAW) {
+                gameInfo.secondDraw();
             } else {
-                setInfo.move();
+                gameInfo.showMovePhase(infoPNum);
             }
         },
         isMyTurn: function() {
@@ -313,6 +288,7 @@ function newStateSync(gameState, appState) {
                     fill: 'white'
                 }));
             appState.app.stage.addChild(tempInfoTextThing);
+            gameInfo.showDrawPhase(gameState.isMyTurn() ? undefined : gameState.currentPlayer);    // TODO: Make this not global
         },
         cardDrawn: function(val, suit) {
             if (!gameState.isDrawPhase) {
@@ -413,13 +389,13 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
                 messageHandler.sendDrawMessage(null)
             }
         },
-        discardClicked: function() {
+        discardTargetClicked: function() {
             if (_selectedCard == null) {
                 console.log("The discard target existed when it shouldn't have");
                 return
             }
 
-            setInfo.move().discard(_selectedCard.val, _selectedCard.suit);
+            gameInfo.setDiscardInfo(_selectedCard.val, _selectedCard.suit);
             _moveCache[1] = _selectedCard;
             if (_moveCache[0] != undefined) {
                 messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
@@ -434,7 +410,7 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
                 return
             }
 
-            setInfo.move().play(_selectedCard.val, _selectedCard.suit, x, y);
+            gameInfo.setPlayInfo(_selectedCard.val, _selectedCard.suit, x, y);
             _moveCache[0] = [_selectedCard, [x, y]];
             if (_moveCache[1] != undefined) {
                 messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
