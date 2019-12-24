@@ -20,7 +20,7 @@ main {
     grid-row: 2;
 }
 
-#gameInfo {
+#gameInfoWrapper {
     grid-column: 1;
     grid-row: 3;
 }

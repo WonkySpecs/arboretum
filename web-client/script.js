@@ -53,11 +53,35 @@ let gameLog = {
     },
 }
 
-let info = {
-    setText: function(msg) {
-        document.getElementById("gameInfoText").textContent = msg;
+let setInfo = function() {
+    let title = document.getElementById("gameInfoTitle");
+    let info = document.getElementById("gameInfo");
+    return {
+        draw: function() {
+            title.textContent = "Draw phase";
+            return {
+                number: function(n) {
+                    if (n === 1) {
+                        info.textContent = "Select your first draw";
+                    } else {
+                        info.textContent = "Select your second draw";
+                    }
+                }
+            }
+        },
+        move: function() {
+            title.textContent = "Move phase";
+            return {
+                discard: function(val, suit) {
+                    info.textContent = "Discard: " + val + " of " + suit;
+                },
+                play: function(val, suit, x, y) {
+                    info.textContent = "Play: " + val + " of " + suit + " at (" + x + ", " + y + ")";
+                },
+            }
+        }
     }
-}
+}();
 
 function newSpriteBuilder(textures, interactionHandler) {
     return {
@@ -124,8 +148,12 @@ function initGameState() {
         },
         nextPhase: function () {
             this.phase = gamePhase.next(this.phase);
+            if (this.isDrawPhase()) {
+                setInfo.draw();
+            } else {
+                setInfo.move();
+            }
         },
-
         isMyTurn: function() {
             return this.myNum == this.currentPlayer;
         },
@@ -220,16 +248,21 @@ function newAppState(app) {
             let arboretumWidth = config.canvas.width / 2 - discardWidth;
             let arboretumHeight = config.canvas.height / numOpponents;
             for (let i = 0; i < numOpponents; i++) {
-                let arboretum = new Arboretum(arboretumWidth, arboretumHeight, 0.5);  //TODO: Work out scale from width/height
+                let arboretum = new Arboretum(
+                    arboretumWidth,
+                    arboretumHeight,
+                    arboretumWidth / playerArboretum.width);
                 arboretum.addToStage(
                     app.stage,
                     config.canvas.width / 2 + discardWidth,
                     arboretumHeight * i);
-                this.opponentArboretums.push(arboretum);
+
                 let discard = new PIXI.Container()
                 discard.x = config.canvas.width / 2;
                 discard.y = arboretumHeight * i + arboretumHeight / 2 - discardHeight / 2;
                 app.stage.addChild(discard);
+
+                this.opponentArboretums.push(arboretum);
                 this.opponentDiscards.push(discard);
             }
         },
@@ -375,7 +408,7 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
                 return
             }
 
-            info.setText("Discarding " + _selectedCard.val + " of " + _selectedCard.suit);
+            setInfo.move().discard(_selectedCard.val, _selectedCard.suit);
             _moveCache[1] = _selectedCard;
             if (_moveCache[0] != undefined) {
                 messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
@@ -389,7 +422,7 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
                 return
             }
 
-            info.setText("Playing " + _selectedCard.val + " of " + _selectedCard.suit + " at (" + x + ", " + y + ")");;
+            setInfo.move().play(_selectedCard.val, _selectedCard.suit, x, y);
             _moveCache[0] = [_selectedCard, [x, y]];
             if (_moveCache[1] != undefined) {
                 messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
