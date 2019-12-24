@@ -47,9 +47,10 @@ let gameLog = {
         } else {
             throw "Cannot append message to log, expected object or string, got " + typeof msg;
         }
-        let log = document.createElement("p");
-        log.innerHTML = text;
-        document.getElementById("gameLog").appendChild(log);
+        let entry = document.createElement("p");
+        entry.innerHTML = text;
+        let log = document.getElementById("gameLog");
+        log.insertBefore(entry, log.firstChild);
     },
 }
 
@@ -143,11 +144,17 @@ function initGameState() {
             this.phase = gamePhase.FIRST_DRAW;
             this.hand = [];
             this.discards = [...Array(numPlayers)].map(_ => []);
-            this.arboretums = [...Array(numPlayers)].map(_ => {});
+            this.arboretums = [...Array(numPlayers)].map(_ => new Object());
+            console.log(this.arboretums);
             this.cardsInDeck = cardsInDeck;
         },
         nextPhase: function () {
             this.phase = gamePhase.next(this.phase);
+            if (this.phase === gamePhase.FIRST_DRAW) {
+                this.currentPlayer = (this.currentPlayer + 1) % this.discards.length;
+                gameLog.append("Now player " + this.currentPlayer + "'s turn");
+            }
+
             if (this.isDrawPhase()) {
                 setInfo.draw();
             } else {
@@ -181,21 +188,27 @@ function initGameState() {
             throw "Expected to get " + val + " of " + suit + ", but couldn't find it";
         },
         validPlayPositions: function() {
-            if (this.arboretums[this.myNum] === undefined) {
+            if (this.arboretums[this.myNum][0] === undefined) {
                 return [["0", "0"]];
             }
             let cardsAt = Object.keys(this.arboretums[this.myNum])
                 .map(x => Object.keys(this.arboretums[this.myNum][x])
                         .map(y => [x, y]))
                 .flat();
-            let possible = cardsAt
+            let possible = new Set(cardsAt
                 .map(([x, y]) => neighbours(x, y))
-                .flat();
+                .flat());
             for (pos of cardsAt) {
                 possible.delete(pos);
             }
             return possible;
         },
+        playCard: function(playerNum, card, x, y) {
+            if (this.arboretums[playerNum][x] === undefined) {
+                this.arboretums[playerNum][x] = {};
+            }
+            this.arboretums[playerNum][x][y] = card;
+        }
     }
 }
 
@@ -239,6 +252,7 @@ function newAppState(app) {
         deckContainer: deckContainer,
         playerArboretum: playerArboretum,
         opponentArboretums: null,
+        moveTargets: [],
         debugRects: debugRects,
         initOpponents: function(numOpponents) {
             this.opponentArboretums = [];
@@ -313,9 +327,6 @@ function newStateSync(gameState, appState) {
                 throw "Attempted to draw card when it was not a draw phase";
             }
             let card = builder.buildCard(val, suit);
-            if (!gameState.drawingInitialHand()) {
-                gameState.nextPhase();
-            }
             gameState.hand.push(card);
             appState.handContainer.addChild(card.sprite);
             appState.resizeCardsInHand(appState);
@@ -323,6 +334,7 @@ function newStateSync(gameState, appState) {
         cardTaken: function(foo) { // TODO: Handle draw targets, for now assuming deck
             gameState.cardsInDeck -= 1;
             appState.decrementCardsInDeck();
+            gameState.nextPhase();
         },
         playCard: function(playerNum, val, suit, x, y) {
             if (gameState.myNum === playerNum) {
@@ -332,17 +344,20 @@ function newStateSync(gameState, appState) {
                 this._playOpponentCard(opponentNum, val, suit, x, y);
             }
             gameLog.append("Player " + playerNum + " played " + val + " of " + suit + " at (" + x + ", " + y + ")");
+            gameState.nextPhase();
         },
         _playMyCard: function(val, suit, x, y) {
             // Remove card from hand, add it to arboretum
             let card = gameState.retrieveCard(val, suit);
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
+            gameState.playCard(gameState.myNum, card, x, y);
             appState.handContainer.removeChild(card.sprite);
             appState.resizeCardsInHand();
             appState.playerArboretum.addSprite(card.sprite, x, y);
         },
         _playOpponentCard: function(opponentNum, val, suit, x, y) {
             let card = builder.buildCard(val, suit);
+            gameState.playCard(gameState.currentPlayer, card, x, y);
             appState.opponentArboretums[opponentNum].addSprite(card.sprite, x, y);
         },
         discardCard: function(playerNum, val, suit) {
@@ -359,6 +374,10 @@ function newStateSync(gameState, appState) {
             }
         },
         createMoveTargets: function() {
+            if (appState.moveTargets.length > 0) {
+                console.log("Tried to create move targets when they already existed, probably a double click");
+                return;
+            }
             let discard = builder.buildMoveTarget("discard");
             appState.playerDiscard.addChild(discard);
             appState.moveTargets = [discard];
@@ -412,6 +431,7 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             _moveCache[1] = _selectedCard;
             if (_moveCache[0] != undefined) {
                 messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
+                _moveCache = [null, null];
             }
             _selectedCard = null;
             stateSync.removeMoveTargets();
@@ -426,6 +446,7 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             _moveCache[0] = [_selectedCard, [x, y]];
             if (_moveCache[1] != undefined) {
                 messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
+                _moveCache = [null, null];
             }
             _selectedCard = null;
             stateSync.removeMoveTargets();
@@ -464,8 +485,9 @@ function newMessageHandler(ws, stateSync) {
                     break;
 
                 case "discard":
-                stateSync.discardCard(
-                    msg.player_num, msg.card_val, msg.card_suit);
+                    stateSync.discardCard(
+                        msg.player_num, msg.card_val, msg.card_suit);
+                    break;
 
 
                 default:
