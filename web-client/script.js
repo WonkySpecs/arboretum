@@ -238,13 +238,6 @@ function newAppState(app) {
     }
     playerArboretum.addToStage(app.stage, 0, 0)
 
-    let debugRects = new PIXI.Graphics();
-    debugRects.lineStyle(3, 0xFF0000);
-    for (rect of [handRect, playerDiscardRect, deckRect]) {
-        debugRects.drawRect(rect.x, rect.y, rect.width, rect.height);
-    }
-    app.stage.addChild(debugRects);
-
     return {
         app: app,
         handContainer: handContainer,
@@ -253,7 +246,6 @@ function newAppState(app) {
         playerArboretum: playerArboretum,
         opponentArboretums: null,
         moveTargets: [],
-        debugRects: debugRects,
         initOpponents: function(numOpponents) {
             this.opponentArboretums = [];
             this.opponentDiscards = [];
@@ -511,10 +503,6 @@ function newMessageHandler(ws, stateSync) {
 function bindControls(appState, ws) {
     // Bind the event handlers of all HTML controls.
     // Will hopefully eventually replace most/all with PIXI rendered controls.
-    debugCheckbox = document.getElementById("debugCheckbox");
-    debugCheckbox.onchange = function() {
-        appState.debugRects.visible = debugCheckbox.checked;
-    }
     bindLobbyButtonFunctions(ws);
 }
 
