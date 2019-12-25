@@ -221,7 +221,7 @@ class Game:
             return False, f"Cannot take from player {target_discard}, they have no discard pile"
 
     def draw(self, target_discard: Optional[int]) -> Card:
-        if not target_discard:
+        if target_discard is None:
             drawn_card = self.deck.pop()
             if not self.deck:
                 self.finished = True

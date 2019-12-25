@@ -115,9 +115,8 @@ function initGameState() {
             this.currentPlayer = 0;
             this.phase = gamePhase.FIRST_DRAW;
             this.hand = [];
-            this.discards = [...Array(numPlayers)].map(_ => []);
+            this.discards = [...Array(numPlayers)].map(_ => new Array());
             this.arboretums = [...Array(numPlayers)].map(_ => new Object());
-            console.log(this.arboretums);
             this.cardsInDeck = cardsInDeck;
         },
         nextPhase: function () {
@@ -211,7 +210,7 @@ function newAppState(app) {
         container.y = rect.y;
         app.stage.addChild(container);
     }
-    playerArboretum.addToStage(app.stage, 0, 0)
+    playerArboretum.addToStage(app.stage, 0, 0);
 
     return {
         app: app,
@@ -299,9 +298,21 @@ function newStateSync(gameState, appState) {
             appState.handContainer.addChild(card.sprite);
             appState.resizeCardsInHand(appState);
         },
-        cardTaken: function(foo) { // TODO: Handle draw targets, for now assuming deck
-            gameState.cardsInDeck -= 1;
-            appState.decrementCardsInDeck();
+        cardTaken: function(fromDiscard) {
+            if (fromDiscard === undefined) {
+                gameState.cardsInDeck -= 1;
+                appState.decrementCardsInDeck();
+            } else {
+                if (fromDiscard == gameState.myNum) {
+                    appState.playerDiscard.removeChildAt(appState.playerDiscard.children.length - 1);
+                } else {
+                    // TODO: Rethink opponent/player split, this is silly, look how much simpler gameState is
+                    let opponentNum = fromDiscard < gameState.myNum ? fromDiscard : fromDiscard - 1;
+                    appState.opponentDiscards[opponentNum]
+                        .removeChildAt(appState.opponentDiscards[opponentNum].children.length - 1);
+                }
+                gameState.discards[fromDiscard].pop();
+            }
             gameState.nextPhase();
         },
         playCard: function(playerNum, val, suit, x, y) {
@@ -332,12 +343,14 @@ function newStateSync(gameState, appState) {
             if (gameState.myNum === playerNum) {
                 let card = gameState.retrieveCard(val, suit);
                 gameState.hand.splice(gameState.hand.indexOf(card), 1);
+                gameState.discards[playerNum].push(card);
                 appState.handContainer.removeChild(card.sprite);
                 appState.resizeCardsInHand();
                 appState.addToMyDiscard(card.sprite);
             } else {
                 let card = builder.buildCard(val, suit);
                 let opponentNum = playerNum < gameState.myNum ? playerNum : playerNum - 1;
+                gameState.discards[playerNum].push(card);
                 appState.addToOpponentDiscard(card.sprite, opponentNum);
             }
         },
@@ -377,9 +390,16 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
                 return
             }
 
-            if (gameState.isDrawPhase()) { // TODO: and card is on top of discard)
-                // Draw from appropriate discard
-            } else if (gameState.isMovePhase() && gameState.isInHand(card)) {
+            if (gameState.isDrawPhase()) {
+                console.log("Tried to take");
+                // If card is at top of discard, draw it
+                let stackTops = gameState.discards.map(a => a[a.length - 1]);
+                for (let i = 0; i < stackTops.length; i ++) {
+                    if (stackTops[i] === card) {
+                        messageHandler.sendDrawMessage(i);
+                    }
+                }
+            } else if (gameState.isMyTurn() && gameState.isMovePhase() && gameState.isInHand(card)) {
                 _selectedCard = card;
                 stateSync.createMoveTargets();
             }
@@ -444,7 +464,7 @@ function newMessageHandler(ws, stateSync) {
                     break;
 
                 case "taken":
-                    stateSync.cardTaken(123);   // TODO: draw target
+                    stateSync.cardTaken(msg.target_discard);
                     break;
 
                 case "played":
