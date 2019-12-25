@@ -8,6 +8,7 @@ main {
     grid-column: 2;
     grid-row: 2;
     overflow-y: scroll;
+    max-height: 35em;
 }
 
 #controls {
