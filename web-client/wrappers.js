@@ -77,3 +77,33 @@ class GameInfo {
         this.playInfo.textContent = "Playing: " + val + " of " + suit + " at (" + x + ", " + y + ")";
     }
 }
+
+class LobbyInfo {
+    constructor() {
+        this.lobbyNameEl = document.getElementById("lobbyName");
+        this.numPlayersEl = document.getElementById("lobbyNumPlayers");
+        this.lobbyName = null;
+        this.numPlayers = null;
+    }
+
+    setLobby(name, numPlayers) {
+        this.lobbyName = name;
+        this.numPlayers = numPlayers;
+        this.setText();
+    }
+
+    decrementPlayers() {
+        this.numPlayers = this.numPlayers - 1;
+        this.setText();
+    }
+
+    incrementPlayers() {
+        this.numPlayers = this.numPlayers + 1;
+        this.setText();
+    }
+
+    setText() {
+        this.lobbyNameEl.textContent = "In lobby: " + this.lobbyName;
+        this.numPlayersEl.textContent = "Current players: " + this.numPlayers + "/4";
+    }
+}

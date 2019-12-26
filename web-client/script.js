@@ -1,4 +1,5 @@
 let gameInfo = new GameInfo();
+let lobbyInfo = new LobbyInfo();
 
 window.onload = function() {
     let app = new PIXI.Application({width: config.canvas.width, height: config.canvas.height, antialias: true});
@@ -276,6 +277,7 @@ function newStateSync(gameState, appState) {
 
     return {
         newGame: function(yourNum, numPlayers, numCards) {
+            document.getElementById("lobbyControls").style.display = "none";
             gameLog.append("Game starting");
             gameLog.append("You are player " + (yourNum + 1) + " of " + numPlayers)
 
@@ -283,7 +285,7 @@ function newStateSync(gameState, appState) {
             appState.initOpponents(numPlayers - 1);
             let deck = builder.buildDeck(numCards);
             appState.deckContainer.addChild(deck);
-            gameInfo.showDrawPhase(gameState.isMyTurn() ? undefined : gameState.currentPlayer);    // TODO: Make this not global
+            gameInfo.showDrawPhase(gameState.isMyTurn() ? undefined : gameState.currentPlayer);
         },
         cardDrawn: function(val, suit) {
             gameLog.append(cardStrFmt(val, suit) + " added to hand");
@@ -450,6 +452,22 @@ function newMessageHandler(ws, stateSync) {
         handle: function(msg) {
             msg = JSON.parse(msg.data)
             switch (msg.message_type) {
+                case "lobby_created":
+                    lobbyInfo.setLobby(msg.lobby_id, 1);
+                    break;
+
+                case "lobby_joined":
+                    lobbyInfo.setLobby(msg.lobby_id, msg.num_players);
+                    break;
+
+                case "lobby_player_joined":
+                    lobbyInfo.incrementPlayers();
+                    break;
+
+                case "lobby_player_left":
+                    lobbyInfo.decrementPlayers();
+                    break;
+
                 case "ready_check":
                     ws.send(JSON.stringify({"message_type": "ready"}));
                     break;
