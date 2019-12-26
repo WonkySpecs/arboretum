@@ -38,7 +38,7 @@ class GameInfo {
             this.title.textContent = "Your draw phase";
             this.info.textContent = "Choose where to draw your first card from";
         } else {
-            this.title.textContent = "Player " + pNum + "'s draw phase";
+            this.title.textContent = "Player " + (pNum + 1) + "'s draw phase";
             this.info.textContent = "They are deciding where to draw from";
         }
         this.wrapper.innerHTML = "";
@@ -60,7 +60,7 @@ class GameInfo {
             this.discardInfo.textContent = "Choose a card to discard";
             this.playInfo.textContent = "Choose a card to play and a place to play it";
         } else {
-            this.title.textContent = "Player " + pNum + "'s move phase";
+            this.title.textContent = "Player " + (pNum + 1) + "'s move phase";
             this.discardInfo.textContent = "They are choosing what to discard";
             this.playInfo.textContent = "They are choosing what to play";
         }

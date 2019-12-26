@@ -110,7 +110,6 @@ function initGameState() {
     }
     return {
         start: function(playerNum, numPlayers, cardsInDeck) {
-            gameLog.append("Game started, you are player " + playerNum + " of " + numPlayers)
             this.myNum = playerNum;
             this.currentPlayer = 0;
             this.phase = gamePhase.FIRST_DRAW;
@@ -123,7 +122,7 @@ function initGameState() {
             this.phase = gamePhase.next(this.phase);
             if (this.phase === gamePhase.FIRST_DRAW) {
                 this.currentPlayer = (this.currentPlayer + 1) % this.discards.length;
-                gameLog.append("Now player " + this.currentPlayer + "'s turn");
+                gameLog.append("Now player " + (this.currentPlayer + 1) + "'s turn");
             }
 
             let infoPNum = this.isMyTurn() ? undefined : this.currentPlayer;
@@ -159,7 +158,7 @@ function initGameState() {
                     }
                 }
             }
-            throw "Expected to get " + val + " of " + suit + ", but couldn't find it";
+            throw "Expected to get " + cardStrFmt(val, suit) + ", but couldn't find it";
         },
         validPlayPositions: function() {
             if (this.arboretums[this.myNum][0] === undefined) {
@@ -277,19 +276,17 @@ function newStateSync(gameState, appState) {
 
     return {
         newGame: function(yourNum, numPlayers, numCards) {
+            gameLog.append("Game starting");
+            gameLog.append("You are player " + (yourNum + 1) + " of " + numPlayers)
+
             gameState.start(yourNum, numPlayers, numCards);
             appState.initOpponents(numPlayers - 1);
             let deck = builder.buildDeck(numCards);
             appState.deckContainer.addChild(deck);
-            let tempInfoTextThing = new PIXI.Text(
-                numPlayers.toString() + "-player game",
-                new PIXI.TextStyle({
-                    fill: 'white'
-                }));
-            appState.app.stage.addChild(tempInfoTextThing);
             gameInfo.showDrawPhase(gameState.isMyTurn() ? undefined : gameState.currentPlayer);    // TODO: Make this not global
         },
         cardDrawn: function(val, suit) {
+            gameLog.append(cardStrFmt(val, suit) + " added to hand");
             if (!gameState.isDrawPhase) {
                 throw "Attempted to draw card when it was not a draw phase";
             }
@@ -299,9 +296,12 @@ function newStateSync(gameState, appState) {
             appState.resizeCardsInHand(appState);
         },
         cardTaken: function(fromDiscard) {
+            let fromDeck = fromDiscard == undefined;
+            let logMessage = "Player " + (gameState.currentPlayer + 1) + " took";
             if (fromDiscard === undefined) {
                 gameState.cardsInDeck -= 1;
                 appState.decrementCardsInDeck();
+                logMessage += " a card from the deck";
             } else {
                 if (fromDiscard == gameState.myNum) {
                     appState.playerDiscard.removeChildAt(appState.playerDiscard.children.length - 1);
@@ -311,8 +311,11 @@ function newStateSync(gameState, appState) {
                     appState.opponentDiscards[opponentNum]
                         .removeChildAt(appState.opponentDiscards[opponentNum].children.length - 1);
                 }
-                gameState.discards[fromDiscard].pop();
+                let taken = gameState.discards[fromDiscard].pop();
+                logMessage += " the " + cardStrFmt(taken.val, taken.suit) +
+                    " from player " + (fromDiscard + 1) + "'s discard";
             }
+            gameLog.append(logMessage);
             gameState.nextPhase();
         },
         playCard: function(playerNum, val, suit, x, y) {
@@ -322,7 +325,7 @@ function newStateSync(gameState, appState) {
                 let opponentNum = playerNum < gameState.myNum ? playerNum : playerNum - 1;
                 this._playOpponentCard(opponentNum, val, suit, x, y);
             }
-            gameLog.append("Player " + playerNum + " played " + val + " of " + suit + " at (" + x + ", " + y + ")");
+            gameLog.append("Player " + (playerNum + 1) + " played " + cardStrFmt(val, suit) + " at (" + x + ", " + y + ")");
             gameState.nextPhase();
         },
         _playMyCard: function(val, suit, x, y) {
@@ -340,6 +343,7 @@ function newStateSync(gameState, appState) {
             appState.opponentArboretums[opponentNum].addSprite(card.sprite, x, y);
         },
         discardCard: function(playerNum, val, suit) {
+            gameLog.append("Player " + (playerNum + 1) + " discarded the " + cardStrFmt(val, suit));
             if (gameState.myNum === playerNum) {
                 let card = gameState.retrieveCard(val, suit);
                 gameState.hand.splice(gameState.hand.indexOf(card), 1);
@@ -391,7 +395,6 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             }
 
             if (gameState.isDrawPhase()) {
-                console.log("Tried to take");
                 // If card is at top of discard, draw it
                 let stackTops = gameState.discards.map(a => a[a.length - 1]);
                 for (let i = 0; i < stackTops.length; i ++) {
@@ -446,7 +449,6 @@ function newMessageHandler(ws, stateSync) {
     handler = {
         handle: function(msg) {
             msg = JSON.parse(msg.data)
-            gameLog.append(msg);
             switch (msg.message_type) {
                 case "ready_check":
                     ws.send(JSON.stringify({"message_type": "ready"}));
@@ -513,4 +515,8 @@ function bindLobbyButtonFunctions(ws) {
     document.getElementById("startBtn").onclick = function() {
         ws.send(JSON.stringify({ "message_type": "start" }));
     };
+}
+
+function cardStrFmt(val, suit) {
+    return val + " of " + suit;
 }
