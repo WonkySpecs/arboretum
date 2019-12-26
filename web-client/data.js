@@ -13,7 +13,7 @@ const config = {
         "Tulip Poplar",
         "deck"],
     cardSpriteWidth: 40,
-    wsURL: "ws://0.0.0.0:5050",
+    wsPort: 5050,
 }
 
 const gamePhase = {

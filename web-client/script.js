@@ -8,7 +8,7 @@ window.onload = function() {
 }
 
 function texturesLoaded(app) {
-    let ws = new WebSocket(config.wsURL)
+    let ws = new WebSocket("ws://" + window.location.hostname + ":" + config.wsPort)
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture);
     let gameState = initGameState();
     let appState = newAppState(app);
