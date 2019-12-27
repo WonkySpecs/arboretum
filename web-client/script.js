@@ -155,13 +155,25 @@ function initGameState() {
                 .map(x => Object.keys(this.arboretums[this.myNum][x])
                         .map(y => [x, y]))
                 .flat();
+            // Looks like Sets don't even work for arrays (objects not literals) so
+            // using them here is useless anyway
             let possible = new Set(cardsAt
                 .map(([x, y]) => neighbours(x, y))
                 .flat());
-            for (pos of cardsAt) {
-                possible.delete(pos);
+            validPositions = [];
+            for ([x, y] of [...possible]) {
+                let toInclude = true;
+                for ([x2, y2] of cardsAt) {
+                    if (x2 === x && y2 === y) {
+                        toInclude = false;
+                        break;
+                    }
+                }
+                if (toInclude) {
+                    validPositions.push([x, y]);
+                }
             }
-            return possible;
+            return validPositions;
         },
         playCard: function(playerNum, card, x, y) {
             if (this.arboretums[playerNum][x] === undefined) {
