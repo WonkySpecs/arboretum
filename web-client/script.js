@@ -69,6 +69,12 @@ function newSpriteBuilder(textures, interactionHandler) {
             deckSprite.addChild(text);
             return deckSprite;
         },
+        buildGhost: function(card) {
+            let ghost = this.buildCard(card.val, card.suit);
+            ghost.sprite.alpha = 0.5;
+            ghost.sprite.on('pointerdown', _ => null);
+            return ghost;
+        },
         buildMoveTarget: function(targetType, x, y) {
             // TODO: Make these more noticeable - fading, glowing, ?
             let rect = new PIXI.Graphics();
@@ -83,8 +89,9 @@ function newSpriteBuilder(textures, interactionHandler) {
             } else {
                 throw "Unknown targetType for move target '" + targetType + "'";
             }
+            interactionHandler.bindMoveTargetInteractions(rect, this);
             return rect;
-        }
+        },
     };
 }
 
@@ -364,9 +371,9 @@ function newStateSync(gameState, appState) {
                 console.log("Tried to create move targets when they already existed, probably a double click");
                 return;
             }
-            let discard = builder.buildMoveTarget("discard");
-            appState.playerDiscard.addChild(discard);
-            appState.moveTargets = [discard];
+            let discardTarget = builder.buildMoveTarget("discard");
+            appState.playerDiscard.addChild(discardTarget);
+            appState.moveTargets = [discardTarget];
             let playTargetPositions = gameState.validPlayPositions();
             for ([x, y] of playTargetPositions) {
                 let target = builder.buildMoveTarget("play", x, y);
@@ -458,6 +465,19 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             _selectedCard = null;
             stateSync.removeMoveTargets();
         },
+        bindMoveTargetInteractions: function(target, builder) {
+            let _ghost = null;
+            let createGhost = function() {
+                _ghost = builder.buildGhost(_selectedCard);
+                target.addChild(_ghost.sprite);
+            }
+            let removeGhost = function() {
+                target.removeChild(_ghost.sprite);
+                _ghost = null;
+            }
+            target.on('pointerover', createGhost);
+            target.on('pointerout', removeGhost);
+        }
     };
 }
 
