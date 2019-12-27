@@ -2,14 +2,14 @@ let gameInfo = new GameInfo();
 let lobbyInfo = new LobbyInfo();
 
 window.onload = function() {
-    let app = new PIXI.Application({width: config.canvas.width, height: config.canvas.height, antialias: true});
+    let app = new PIXI.Application({width: config.CANVAS.width, height: config.CANVAS.height, antialias: true});
     PIXI.loader
         .add("spritesheet.png")
         .load(() => texturesLoaded(app))
 }
 
 function texturesLoaded(app) {
-    let ws = new WebSocket("ws://" + window.location.hostname + ":" + config.wsPort)
+    let ws = new WebSocket("ws://" + window.location.hostname + ":" + config.WS_PORT)
     let textures = splitSpriteSheet(PIXI.loader.resources["spritesheet.png"].texture);
     let gameState = initGameState();
     let appState = newAppState(app);
@@ -29,7 +29,7 @@ function splitSpriteSheet(sheet) {
     for ( let i = 0; i < config.suitNames.length; i++ ) {
         textures[config.suitNames[i]] = new PIXI.Texture(
             sheet,
-            new PIXI.Rectangle(i * config.cardSpriteWidth, 0, config.cardSpriteWidth, cardHeight));
+            new PIXI.Rectangle(i * config.CARD_SPRITE_WIDTH, 0, config.CARD_SPRITE_WIDTH, cardHeight));
     }
     return textures;
 }
@@ -88,7 +88,7 @@ function newSpriteBuilder(textures, interactionHandler) {
             let rect = new PIXI.Graphics();
             rect.lineStyle(2, 0x0033FF, 1);
             rect.beginFill(0x0033CC, 0.1);
-            rect.drawRoundedRect(1, 1, config.cardSpriteWidth - 2, 62, 6) // Magic = about card sized TODO: Sort it
+            rect.drawRoundedRect(1, 1, config.CARD_SPRITE_WIDTH - 2, 62, 6) // Magic = about card sized TODO: Sort it
             rect.interactive = true;
             if (targetType === "discard") {
                 rect.on('pointerdown', _ => interactionHandler.discardTargetClicked());
@@ -189,17 +189,17 @@ function initGameState() {
 function newAppState(app) {
     // TODO: Make all sizes relative to stage size
     let handContainer = new PIXI.Container();
-    let handRect = new PIXI.Rectangle(0, config.canvas.height - 100, config.canvas.width / 2, 100);
+    let handRect = new PIXI.Rectangle(0, config.CANVAS.height - 100, config.CANVAS.width / 2, 100);
 
     let playerDiscardContainer = new PIXI.Container();
-    let playerDiscardRect = new PIXI.Rectangle(config.canvas.width / 2 - 60, config.canvas.height - handRect.height - 80, 60, 80);
+    let playerDiscardRect = new PIXI.Rectangle(config.CANVAS.width / 2 - 60, config.CANVAS.height - handRect.height - 80, 60, 80);
 
     let deckContainer = new PIXI.Container();
-    let deckRect = new PIXI.Rectangle(config.canvas.width / 2 - 60 - 60, config.canvas.height - handRect.height - 80, 60, 80);
+    let deckRect = new PIXI.Rectangle(config.CANVAS.width / 2 - 60 - 60, config.CANVAS.height - handRect.height - 80, 60, 80);
 
     let playerArboretum = new Arboretum(
-        config.canvas.width / 2,
-        config.canvas.height - handRect.height - deckRect.height,
+        config.CANVAS.width / 2,
+        config.CANVAS.height - handRect.height - deckRect.height,
         1.0);
 
     for ([container, rect] of [
@@ -225,8 +225,8 @@ function newAppState(app) {
             this.opponentDiscards = [];
             let discardWidth = 50;
             let discardHeight = 70;
-            let arboretumWidth = config.canvas.width / 2 - discardWidth;
-            let arboretumHeight = config.canvas.height / numOpponents;
+            let arboretumWidth = config.CANVAS.width / 2 - discardWidth;
+            let arboretumHeight = config.CANVAS.height / numOpponents;
             for (let i = 0; i < numOpponents; i++) {
                 let arboretum = new Arboretum(
                     arboretumWidth,
@@ -234,11 +234,11 @@ function newAppState(app) {
                     arboretumWidth / playerArboretum.width);
                 arboretum.addToStage(
                     app.stage,
-                    config.canvas.width / 2 + discardWidth,
+                    config.CANVAS.width / 2 + discardWidth,
                     arboretumHeight * i);
 
                 let discard = new PIXI.Container()
-                discard.x = config.canvas.width / 2;
+                discard.x = config.CANVAS.width / 2;
                 discard.y = arboretumHeight * i + arboretumHeight / 2 - discardHeight / 2;
                 app.stage.addChild(discard);
 

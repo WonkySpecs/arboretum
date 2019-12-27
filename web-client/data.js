@@ -1,5 +1,5 @@
 const config = {
-    canvas: { width: 1080, height: 720 },
+    CANVAS: { width: 1080, height: 720 },
     suitNames: [
         "Maple",
         "Cassia",
@@ -12,8 +12,8 @@ const config = {
         "Willow",
         "Tulip Poplar",
         "deck"],
-    cardSpriteWidth: 40,
-    wsPort: 5050,
+    CARD_SPRITE_WIDTH: 40,
+    WS_PORT: 5050,
 }
 
 const gamePhase = {
