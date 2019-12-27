@@ -7,7 +7,7 @@ from .data import Player, Suit, Card
 def score_game(players: List[Player]) -> Dict[Player, int]:
     player_suit_values = calc_player_suit_values(players)
     suits = set(suit for suit_scores in player_suit_values.values() for suit in suit_scores.keys())
-    scores: Dict[Player, int] = defaultdict(int)
+    scores: Dict[Player, int] = {p: 0 for p in players}
     for suit in suits:
         scorers = who_scores(suit, player_suit_values)
         for scorer in scorers:

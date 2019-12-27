@@ -104,6 +104,7 @@ function initGameState() {
             this.discards = [...Array(numPlayers)].map(_ => new Array());
             this.arboretums = [...Array(numPlayers)].map(_ => new Object());
             this.cardsInDeck = cardsInDeck;
+            gameInfo.myNum = playerNum;
         },
         nextPhase: function () {
             this.phase = gamePhase.next(this.phase);
@@ -112,13 +113,12 @@ function initGameState() {
                 gameLog.append("Now player " + (this.currentPlayer + 1) + "'s turn");
             }
 
-            let infoPNum = this.isMyTurn() ? undefined : this.currentPlayer;
             if (this.phase === gamePhase.FIRST_DRAW) {
-                gameInfo.showDrawPhase(infoPNum);
+                gameInfo.showDrawPhase(this.currentPlayer);
             } else if (this.phase === gamePhase.SECOND_DRAW) {
                 gameInfo.secondDraw();
             } else {
-                gameInfo.showMovePhase(infoPNum);
+                gameInfo.showMovePhase(this.currentPlayer);
             }
         },
         isMyTurn: function() {
@@ -271,7 +271,7 @@ function newStateSync(gameState, appState) {
             appState.initOpponents(numPlayers - 1);
             let deck = builder.buildDeck(numCards);
             appState.deckContainer.addChild(deck);
-            gameInfo.showDrawPhase(gameState.isMyTurn() ? undefined : gameState.currentPlayer);
+            gameInfo.showDrawPhase(gameState.currentPlayer);
         },
         cardDrawn: function(val, suit) {
             gameLog.append(cardStrFmt(val, suit) + " added to hand");
@@ -499,9 +499,13 @@ function newMessageHandler(ws, stateSync) {
                         msg.player_num, msg.card_val, msg.card_suit);
                     break;
 
+                case "game_over":
+                    gameInfo.displayScores(msg.scores, parseInt(msg.winner));
+                    break;
 
                 default:
                     console.log("Message with unknown type " + msg.message_type);
+                    console.log(msg);
             }
         },
         sendDrawMessage: function(drawTarget) {

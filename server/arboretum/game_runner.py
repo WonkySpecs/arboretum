@@ -2,7 +2,8 @@ from typing import Dict
 import asyncio
 
 from arboretum.clients.base_client import BaseClient
-from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage, GameStartMessage
+from arboretum.clients.messages import DrawMessage, PlayMessage, CardTakenMessage, DiscardMessage, GameStartMessage, \
+    GameOverMessage
 from arboretum.game.data import Game, Player
 from arboretum.game.scoring import score_game
 
@@ -34,6 +35,8 @@ class GameRunner:
             await self.handle_move()
 
             self.game.player_turn = (self.game.player_turn + 1) % len(self.game.players)
+
+        await self.broadcast(GameOverMessage(self.score()))
 
     async def handle_draw(self):
         valid = False
@@ -83,8 +86,8 @@ class GameRunner:
     def _cur_player_num(self):
         return self.game.current_player.num
 
-    def score(self):
-        return score_game(self.game.players)
+    def score(self) -> Dict[int, int]:
+        return {p.num: s for p, s in score_game(self.game.players).items()}
 
     @staticmethod
     async def next_input(client, target_type):

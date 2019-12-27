@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Dict
 import json
 
 from arboretum.game.data import Card, Pos
@@ -11,6 +11,7 @@ class MessageType(Enum):
     PLAYED = "played"
     CARD_TAKEN = "taken"
     GAME_START = "game_start"
+    GAME_OVER = "game_over"
 
 
 class Message:
@@ -69,3 +70,10 @@ class GameStartMessage(Message):
         super().__init__(MessageType.GAME_START, player_num)
         self.num_players = num_players
         self.cards_in_deck = cards_in_deck
+
+
+class GameOverMessage(Message):
+    def __init__(self, scores: Dict[int, int]):
+        super().__init__(MessageType.GAME_OVER, -1)
+        self.scores = scores
+        self.winner = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[0][0]

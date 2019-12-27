@@ -29,11 +29,12 @@ class GameInfo {
         this.info = document.createElement("p");
         this.playInfo = document.createElement("p");
         this.discardInfo = document.createElement("p");
+        this.myNum = -1;
         this.myTurn = false;
     }
 
     showDrawPhase(pNum) {
-        this.myTurn = pNum === undefined;
+        this.myTurn = pNum === this.myNum;
         if (this.myTurn) {
             this.title.textContent = "Your draw phase";
             this.info.textContent = "Choose where to draw your first card from";
@@ -54,7 +55,7 @@ class GameInfo {
     }
 
     showMovePhase(pNum) {
-        this.myTurn = pNum === undefined;
+        this.myTurn = pNum === this.myNum;
         if (this.myTurn) {
             this.title.textContent = "Your move phase";
             this.discardInfo.textContent = "Choose a card to discard";
@@ -71,7 +72,6 @@ class GameInfo {
     }
 
     setMoveInfo(playCard, playPos, discardCard) {
-
         if (playCard != null) {
             let x = playPos[0];
             let y = playPos[1];
@@ -86,6 +86,20 @@ class GameInfo {
         } else {
             this.discardInfo.textContent = "Choose a card to discard";
         }
+    }
+
+    displayScores(scores, winner) {
+        this.wrapper.innerHTML = "";
+        let titleText = "Game Finished - The winner is player " + (winner + 1) + " - " +
+            (winner === this.myNum ? "Congratulations!" : "Better luck next time");
+        this.title.textContent = titleText;
+        let numPlayers = Object.keys(scores).length;
+        let text = "Scores: ";
+        for (let i = 0; i < numPlayers; i++) {
+            text += "player " + (i + 1) + ": " + scores[i] + ", ";
+        }
+        this.info.textContent = text.substring(0, text.length - 2);
+        this.wrapper.appendChild(this.info)
     }
 }
 

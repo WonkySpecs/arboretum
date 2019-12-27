@@ -57,11 +57,11 @@ class DataTest(unittest.TestCase):
             ])
 
     def test_complicated(self):
-        def score_suit(suit):
+        def paths_for(suit):
             return self.complicated().paths_for(suit)
 
-        self.assertEqual(score_suit(Suit.JACARANDA), [[]])
-        dogwood_paths = score_suit(Suit.DOGWOOD)
+        self.assertEqual(paths_for(Suit.JACARANDA), [])
+        dogwood_paths = paths_for(Suit.DOGWOOD)
         self.assertIn(
             [
                 Card(Suit.DOGWOOD, 1),
@@ -84,7 +84,7 @@ class DataTest(unittest.TestCase):
         self.assertTrue(self.all_ascending(dogwood_paths))
         self.assertTrue(self.all_two_plus(dogwood_paths))
 
-        cassia_paths = score_suit(Suit.CASSIA)
+        cassia_paths = paths_for(Suit.CASSIA)
         self.assertIn(
             [
                 Card(Suit.CASSIA, 1),
