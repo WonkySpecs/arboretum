@@ -324,6 +324,7 @@ function newStateSync(gameState, appState) {
             appState.handContainer.removeChild(card.sprite);
             appState.resizeCardsInHand();
             appState.playerArboretum.addSprite(card.sprite, x, y);
+            document.getElementById("confirmMoveBtn").style.display = "none";
         },
         _playOpponentCard: function(opponentNum, val, suit, x, y) {
             let card = builder.buildCard(val, suit);
@@ -375,7 +376,15 @@ function newStateSync(gameState, appState) {
 
 function newInteractionHandler(stateSync, gameState, messageHandler) {
     let _selectedCard = null;
-    let _moveCache = [null, null];  // [[cardToPlay, [x, y]], cardToDiscard]. This is going to lead to bugs
+    let _moveCache = [null, null, null];  // [cardToPlay, [x, y], cardToDiscard]. This is going to lead to bugs
+
+    let _confirmBtn = document.getElementById("confirmMoveBtn");
+    _confirmBtn.onclick = function() {
+        messageHandler.sendMoveMessage(..._moveCache);
+        _moveCache = [null, null, null];
+        _confirmBtn.disabled = true;
+    }
+
     return {
         cardClicked: function(card) {
             if (!gameState.isMyTurn()) {
@@ -401,35 +410,42 @@ function newInteractionHandler(stateSync, gameState, messageHandler) {
             }
         },
         discardTargetClicked: function() {
+            this._handleTargetClicked("discard");
+        },
+        playTargetClicked: function(x, y) {
+            this._handleTargetClicked("play", [x, y]);
+        },
+        _handleTargetClicked: function(targetType, pos) {
             if (_selectedCard == null) {
-                console.log("The discard target existed when it shouldn't have");
+                console.log("A " + targetType + " existed when it shouldn't have");
+                stateSync.removeMoveTargets();
                 return
             }
 
-            gameInfo.setDiscardInfo(_selectedCard.val, _selectedCard.suit);
-            _moveCache[1] = _selectedCard;
-            if (_moveCache[0] != undefined) {
-                messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
-                _moveCache = [null, null];
+            if (targetType === "play") {
+                _moveCache[0] = _selectedCard;
+                _moveCache[1] = pos;
+            } else {
+                _moveCache[2] = _selectedCard;
             }
+
+            let otherSelectedIdx = targetType === "play" ? 2 : 0;
+            let otherSelectedCard = _moveCache[otherSelectedIdx];
+
+            if (otherSelectedCard == _selectedCard) {
+                _moveCache[otherSelectedIdx] = null;
+            }
+
+            if (_moveCache[0] != null && _moveCache[2] != null) {
+                confirmMoveBtn.disabled = false;
+            } else {
+                confirmMoveBtn.disabled = true;
+            }
+
+            gameInfo.setMoveInfo(..._moveCache);
             _selectedCard = null;
             stateSync.removeMoveTargets();
         },
-        playTargetClicked: function(x, y) {
-            if (_selectedCard == null) {
-                console.log("A play target existed when it shouldn't have");
-                return
-            }
-
-            gameInfo.setPlayInfo(_selectedCard.val, _selectedCard.suit, x, y);
-            _moveCache[0] = [_selectedCard, [x, y]];
-            if (_moveCache[1] != undefined) {
-                messageHandler.sendMoveMessage(_moveCache[0][0], _moveCache[0][1], _moveCache[1]);
-                _moveCache = [null, null];
-            }
-            _selectedCard = null;
-            stateSync.removeMoveTargets();
-        }
     };
 }
 

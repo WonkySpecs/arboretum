@@ -59,6 +59,7 @@ class GameInfo {
             this.title.textContent = "Your move phase";
             this.discardInfo.textContent = "Choose a card to discard";
             this.playInfo.textContent = "Choose a card to play and a place to play it";
+            document.getElementById("confirmMoveBtn").style.display = "inherit";
         } else {
             this.title.textContent = "Player " + (pNum + 1) + "'s move phase";
             this.discardInfo.textContent = "They are choosing what to discard";
@@ -69,12 +70,22 @@ class GameInfo {
         this.wrapper.appendChild(this.playInfo);
     }
 
-    setDiscardInfo(val, suit) {
-        this.discardInfo.textContent = "Discarding: " + val + " of " + suit;
-    }
+    setMoveInfo(playCard, playPos, discardCard) {
 
-    setPlayInfo(val, suit, x, y) {
-        this.playInfo.textContent = "Playing: " + val + " of " + suit + " at (" + x + ", " + y + ")";
+        if (playCard != null) {
+            let x = playPos[0];
+            let y = playPos[1];
+            this.playInfo.textContent = "Playing: " + cardStrFmt(playCard.val, playCard.suit)
+                                        + " at (" + x + ", " + y + ")";
+        } else {
+            this.playInfo.textContent = "Choose a card to play and a place to play it";
+        }
+
+        if (discardCard != null) {
+            this.discardInfo.textContent = "Discarding: " + cardStrFmt(discardCard.val, discardCard.suit);
+        } else {
+            this.discardInfo.textContent = "Choose a card to discard";
+        }
     }
 }
 
