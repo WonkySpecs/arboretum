@@ -259,8 +259,8 @@ function newAppState(app) {
         },
         addToMyDiscard: function(sprite) {
             playerDiscardContainer.addChild(sprite);
-            sprite.x = 8;
-            sprite.y = 8;
+            sprite.x = 1;
+            sprite.y = 1;
         },
         addToOpponentDiscard: function(sprite, opponentNum) {
             this.opponentDiscards[opponentNum].addChild(sprite);
