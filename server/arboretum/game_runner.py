@@ -98,7 +98,7 @@ class GameRunner:
                 return await client.gen_move.__anext__()
             else:
                 return next(client.gen_move)
-        raise RuntimeException(f"Unknown target_type {target_type}")
+        raise RuntimeError(f"Unknown target_type {target_type}")
 
     async def broadcast(self, message, clients=None):
         clients = clients if clients else self.player_clients.values()
