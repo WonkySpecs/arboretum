@@ -36,22 +36,8 @@ function splitSpriteSheet(sheet) {
 
 let gameLog = {
     append: function(msg) {
-        let text = "";
-        if (typeof msg === "string") {
-            text = msg;
-        } else if (typeof msg === "object") {
-            let kvs = [];
-            Object.keys(msg).forEach((k, _) => kvs.push(k + ": " + msg[k]));
-            text = kvs.reduce(
-                function(acc, s, i) {
-                    if ( i === 0 ) { return acc + s; }
-                    else { return acc + ", " + s; }},
-                "Message: ");
-        } else {
-            throw "Cannot append message to log, expected object or string, got " + typeof msg;
-        }
         let entry = document.createElement("p");
-        entry.innerHTML = text;
+        entry.innerHTML = msg;
         let log = document.getElementById("gameLog");
         log.insertBefore(entry, log.firstChild);
     },
