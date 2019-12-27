@@ -175,6 +175,9 @@ class Player:
         if not any([to_discard == c for c in self.hand]):
             return False, f"Cannot discard card '{to_discard}' because you don't have it"
 
+        if to_place == to_discard:
+            return False, "You cannot place and discard the same card"
+
         return self.arboretum.is_valid_place_pos(place_pos)
 
     def play(self, to_play: Card, pos: Pos, to_discard: Card):
