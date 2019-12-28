@@ -274,6 +274,23 @@ function newAppState(app) {
             sprite.x = 8;
             sprite.y = 8;
         },
+        setButtonModes: function(val) {
+            let toSet = [...this.handContainer.children];
+            toSet.push(lastChild(this.deckContainer));
+            if (this.playerDiscard.children.length > 0) {
+                toSet.push(lastChild(this.playerDiscard));
+            }
+
+            for (discard of this.opponentDiscards) {
+                if (discard.children.length > 0) {
+                    toSet.push(lastChild(discard));
+                }
+            }
+
+            for (card of toSet) {
+                card.buttonMode = val;
+            }
+        },
     }
 }
 
@@ -291,6 +308,7 @@ function newStateSync(gameState, appState) {
             let deck = builder.buildDeck(numCards);
             appState.deckContainer.addChild(deck);
             gameInfo.showDrawPhase(gameState.currentPlayer);
+            appState.setButtonModes(yourNum == 0);
         },
         cardDrawn: function(val, suit) {
             gameLog.append(cardStrFmt(val, suit) + " added to hand");
@@ -324,6 +342,7 @@ function newStateSync(gameState, appState) {
             }
             gameLog.append(logMessage);
             gameState.nextPhase();
+            appState.setButtonModes(gameState.isMyTurn());
         },
         playCard: function(playerNum, val, suit, x, y) {
             if (gameState.myNum === playerNum) {
@@ -334,10 +353,12 @@ function newStateSync(gameState, appState) {
             }
             gameLog.append("Player " + (playerNum + 1) + " played " + cardStrFmt(val, suit) + " at (" + x + ", " + y + ")");
             gameState.nextPhase();
+            appState.setButtonModes(gameState.isMyTurn());
         },
         _playMyCard: function(val, suit, x, y) {
             // Remove card from hand, add it to arboretum
             let card = gameState.retrieveCard(val, suit);
+            card.sprite.buttonMode = false;
             gameState.hand.splice(gameState.hand.indexOf(card), 1);
             gameState.playCard(gameState.myNum, card, x, y);
             appState.handContainer.removeChild(card.sprite);
@@ -365,6 +386,7 @@ function newStateSync(gameState, appState) {
                 gameState.discards[playerNum].push(card);
                 appState.addToOpponentDiscard(card.sprite, opponentNum);
             }
+            appState.setButtonModes(gameState.isMyTurn());
         },
         createMoveTargets: function() {
             if (appState.moveTargets.length > 0) {
@@ -575,4 +597,8 @@ function bindLobbyButtonFunctions(ws) {
 
 function cardStrFmt(val, suit) {
     return val + " of " + suit;
+}
+
+function lastChild(pixiContainer) {
+    return pixiContainer.getChildAt(pixiContainer.children.length - 1);
 }
